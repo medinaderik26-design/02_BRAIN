@@ -1,5 +1,6 @@
-# ollama_bridge.py v1.1 - Context Shifting Integration
+# ollama_bridge.py v1.2 - Context Shifting Integration
 # Copyright 2026 Weisone Systems LLC. Proprietary and Confidential.
+# Fixed: process_live_stream moved inside OllamaContextBridge class (was dangling outside)
 
 import sys
 import json
@@ -78,47 +79,49 @@ class OllamaContextBridge:
             self.tools.log_to_chronicle("BRIDGE_ERROR", str(exc))
             return json.dumps({"error": str(exc)}, indent=2)
 
-def process_live_stream(self, new_prompt: str):
+    def process_live_stream(self, new_prompt: str):
         """Processes the context pipeline and streams tokens back instantly."""
         try:
             # 1. Run your core architectural calculus
             estimated_pressure = self._estimate_pressure(new_prompt)
             aperture = self.variator.calculate_aperture(estimated_pressure)
             active_history = self._build_active_messages(aperture)
-            
+
             # 2. Log structural updates to your chronicle
             self.tools.log_to_chronicle(
                 "BRIDGE_STREAM_SHIFT",
                 f"Pressure: {estimated_pressure:.2f} -> Aperture: {aperture:.2f}"
             )
-            
+
             # 3. Assemble active context window
             messages = [
                 {"role": "system", "content": "You are a local context-managed assistant."},
                 *active_history,
                 {"role": "user", "content": new_prompt},
             ]
-            
+
             # 4. Trigger the native Ollama chat stream generator
             response_stream = chat(
                 model=self.model,
                 messages=messages,
                 stream=True
             )
-            
+
             # 5. Yield each token to the notebook in real-time
             full_response = ""
             for chunk in response_stream:
                 token = chunk.get("message", {}).get("content", "")
                 full_response += token
                 yield token
-                
+
             # 6. Commit the finalized exchange to your historical record
             self.raw_history.append({"role": "user", "content": new_prompt})
             self.raw_history.append({"role": "assistant", "content": full_response})
-            
+
         except Exception as e:
             yield f"\n[STREAM ERROR]: {str(e)}"
+
+
 if __name__ == "__main__":
     print("Ollama Context Isolation Bridge active.")
     bridge = OllamaContextBridge()
