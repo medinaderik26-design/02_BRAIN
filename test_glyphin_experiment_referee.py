@@ -21,7 +21,8 @@ def test_recorded_run_replays_exactly() -> None:
     assert result.exact
     assert result.replay_succeeded
     assert result.memory is not None
-    assert result.memory.state_mismatches == ()
+    assert result.memory.field_mismatches == ()
+    assert result.memory.parameter_mismatches == ()
 
 
 def test_recorded_final_state_tampering_is_detected() -> None:
@@ -41,7 +42,7 @@ def test_recorded_final_state_tampering_is_detected() -> None:
     assert result.memory is not None
     assert any(
         item["state"] == "child" and item["field"] == "frequency"
-        for item in result.memory.state_mismatches
+        for item in result.memory.field_mismatches
     )
 
 
