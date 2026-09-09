@@ -1,0 +1,34 @@
+name: Glyphin Simulation 19 Structural Dictionary Compression
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - glyphin_simulation19.py
+      - simulation19.trigger
+      - glyphin_simulation18.py
+      - glyphin_simulation17.py
+      - glyphin_research_core.py
+      - glyphin_state_referee.py
+      - glyphin_compression.py
+
+jobs:
+  simulation19-dictionary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tokenizer
+        run: pip install tiktoken==0.11.0
+      - name: Run Simulation 19
+        run: python glyphin_simulation19.py --output glyphin_simulation19_result.json
+      - name: Upload Simulation 19 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation19-structural-dictionary-result
+          path: glyphin_simulation19_result.json
