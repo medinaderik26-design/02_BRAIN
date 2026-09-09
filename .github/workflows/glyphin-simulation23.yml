@@ -1,0 +1,25 @@
+name: Glyphin Simulation 23 Information Attribution
+on:
+  push:
+    paths:
+      - glyphin_simulation23.py
+      - glyphin_simulation21.py
+      - glyphin_simulation19.py
+      - glyphin_research_core.py
+      - glyphin_state_referee.py
+      - simulation23.trigger
+  workflow_dispatch:
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'tiktoken==0.11.0'
+      - run: python glyphin_simulation23.py --output glyphin_simulation23_result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation23-result
+          path: glyphin_simulation23_result.json
