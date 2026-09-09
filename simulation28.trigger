@@ -1,1 +1,1 @@
-Simulation 28.3 trigger: query-conditioned retrieval benchmark rerun after dependency-closure fix
+Simulation 28.4 trigger: preserve explicit query anchors across conditioned retrieval
