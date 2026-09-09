@@ -3,7 +3,7 @@
 Compares the frozen Sim17 compact semantic grammar with a generic structural
 lineage representation. Both are decoded independently and checked with the
 independent GlyphState referee. The structural variant removes repeated parent
-names by using stable name indices and encodes UTC timestamps as integer
+names by using stable name indices and encodes timestamps as integer
 microsecond deltas from a base timestamp. No fixture-specific labels, counts,
 or fingerprints are used by the encoder.
 """
@@ -132,11 +132,20 @@ def decode_structural(text: str) -> GlyphinMemory:
                      float(resonance), sigma, created_at))
     if len(rows) != len(names):
         raise ValueError("state record count does not match name table")
-    for row in sorted(rows):
-        _, name, level, cohesion, parent, freq, resonance, sigma, created_at = row
-        memory.add_state(name, level=level, cohesion=cohesion, parent=parent,
-                         frequency=freq, resonance=resonance, sigma=sigma,
-                         created_at=created_at)
+    remaining = {row[0]: row for row in rows}
+    while remaining:
+        progress = False
+        for i in sorted(tuple(remaining)):
+            row = remaining[i]
+            _, name, level, cohesion, parent, freq, resonance, sigma, created_at = row
+            if parent is None or parent in memory.states:
+                memory.add_state(name, level=level, cohesion=cohesion, parent=parent,
+                                 frequency=freq, resonance=resonance, sigma=sigma,
+                                 created_at=created_at)
+                del remaining[i]
+                progress = True
+        if not progress:
+            raise ValueError("unresolvable parent relationships")
     return memory
 
 
