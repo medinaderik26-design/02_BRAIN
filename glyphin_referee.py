@@ -45,35 +45,34 @@ class RefereeResult:
 
 
 def _fingerprint(graph: DirectedTopology) -> str:
-    payload = graph.to_canonical_dict()
-    data = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    data = json.dumps(graph.canonical(), sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(data).hexdigest()
 
 
 def referee(source: DirectedTopology, encoded: str) -> RefereeResult:
+    source_fp = _fingerprint(source)
     try:
         candidate = reconstruct(encoded)
     except (ReconstructionError, ValueError) as exc:
         return RefereeResult(
-            exact_match=False,
-            parse_ok=False,
+            exact_match=False, parse_ok=False,
             source_nodes=len(source.nodes), candidate_nodes=0,
             source_edges=len(source.edges), candidate_edges=0,
             missing_nodes=sorted(source.nodes), extra_nodes=[],
             missing_edges=sorted(source.edges), extra_edges=[],
-            source_fingerprint=_fingerprint(source), candidate_fingerprint="",
+            source_fingerprint=source_fp, candidate_fingerprint="",
             error=str(exc),
         )
 
     diff = source.compare(candidate)
     return RefereeResult(
-        exact_match=bool(diff["exact_match"]),
-        parse_ok=True,
+        exact_match=bool(diff["exact"]), parse_ok=True,
         source_nodes=len(source.nodes), candidate_nodes=len(candidate.nodes),
         source_edges=len(source.edges), candidate_edges=len(candidate.edges),
         missing_nodes=diff["missing_nodes"], extra_nodes=diff["extra_nodes"],
-        missing_edges=diff["missing_edges"], extra_edges=diff["extra_edges"],
-        source_fingerprint=_fingerprint(source),
+        missing_edges=[tuple(e) for e in diff["missing_edges"]],
+        extra_edges=[tuple(e) for e in diff["extra_edges"]],
+        source_fingerprint=source_fp,
         candidate_fingerprint=_fingerprint(candidate),
     )
 
