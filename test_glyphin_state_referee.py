@@ -19,6 +19,7 @@ def test_identical_memories_are_exact() -> None:
     result = referee_memory(source, candidate)
     assert result.exact
     assert result.field_mismatches == ()
+    assert result.parameter_mismatches == ()
 
 
 def test_state_change_is_detected_even_when_topology_is_unchanged() -> None:
@@ -40,3 +41,14 @@ def test_lineage_change_is_detected() -> None:
     fields = {(item["state"], item["field"]) for item in result.field_mismatches}
     assert ("child", "parent") in fields
     assert ("root", "children") in fields
+
+
+def test_memory_parameter_change_is_detected() -> None:
+    source = _memory()
+    candidate = GlyphinMemory.from_json(source.to_json())
+    candidate.beta = 0.3
+    result = referee_memory(source, candidate)
+    assert not result.exact
+    assert result.parameter_mismatches == (
+        {"field": "beta", "expected": 0.25, "actual": 0.3},
+    )
