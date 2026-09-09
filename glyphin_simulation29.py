@@ -17,12 +17,10 @@ TOKENIZER = "cl100k_base"
 VARIANTS = {"sim17-compact": (encode_compact, decode_compact), "structural-lineage": (encode_structural, decode_structural), "state-columnar": (encode_columnar, decode_columnar)}
 QUERY_TYPES = ("direct_attribute", "parent_lookup", "child_lookup", "multi_hop_traversal", "relationship_exists", "path_reconstruction", "temporal_ordering", "parameter_retrieval", "cross_state_comparison", "mixed_multi_hop")
 
-def names(memory):
-    return sorted(memory.states)
+def names(memory): return sorted(memory.states)
 
 def query_spec(memory, q, a, b, c):
-    if q == "parameter_retrieval":
-        return {"decay_lambda": memory.decay_lambda, "alpha": memory.alpha, "beta": memory.beta}
+    if q == "parameter_retrieval": return {"decay_lambda": memory.decay_lambda, "alpha": memory.alpha, "beta": memory.beta}
     sa, sb, sc = memory.states[a], memory.states[b], memory.states[c]
     if q == "direct_attribute": return {"name": a, "level": sa.level, "cohesion": sa.cohesion, "frequency": sa.frequency, "resonance": sa.resonance, "sigma": sa.sigma, "created_at": sa.created_at}
     if q == "parent_lookup": return {"state": a, "parent": sa.parent}
@@ -38,27 +36,44 @@ def query_spec(memory, q, a, b, c):
 def build_index(memory):
     return {n: {"parent": memory.states[n].parent, "children": sorted(memory.states[n].children)} for n in names(memory)}
 
-def ancestors(index, node):
-    out, seen = [], set()
-    cur = node
+def ancestors_from_parent(parent_map, node):
+    out, seen = [], set(); cur = node
     while cur is not None and cur not in seen:
-        seen.add(cur); out.append(cur); cur = index[cur]["parent"]
+        seen.add(cur); out.append(cur); cur = parent_map[cur]
     return out
+
+def ground_truth_closure(memory, q, a, b, c):
+    if q == "parameter_retrieval": return set()
+    p = {n: memory.states[n].parent for n in names(memory)}
+    children = {n: set(memory.states[n].children) for n in names(memory)}
+    if q == "direct_attribute": return {a}
+    if q == "parent_lookup": return {a} | ({p[a]} if p[a] else set())
+    if q == "child_lookup": return {a} | children[a]
+    if q == "multi_hop_traversal": return set(ancestors_from_parent(p, a))
+    if q == "relationship_exists": return {a, b} | ({p[a]} if p[a] else set()) | ({p[b]} if p[b] else set())
+    if q == "path_reconstruction": return set(ancestors_from_parent(p, a)) | set(ancestors_from_parent(p, b))
+    if q == "temporal_ordering": return {a, b, c}
+    if q == "cross_state_comparison": return {a, b} | ({p[a]} if p[a] else set()) | ({p[b]} if p[b] else set())
+    if q == "mixed_multi_hop":
+        out = set(ancestors_from_parent(p, a)) | {c}; parent = p[a]
+        if parent: out.add(parent); out.update(children[parent])
+        if p[c]: out.add(p[c])
+        return out
+    raise ValueError(q)
 
 def index_closure(index, q, a, b, c):
     if q == "parameter_retrieval": return set()
     if q == "direct_attribute": return {a}
     if q == "parent_lookup": return {a} | ({index[a]["parent"]} if index[a]["parent"] else set())
     if q == "child_lookup": return {a} | set(index[a]["children"])
-    if q == "multi_hop_traversal": return set(ancestors(index, a))
-    if q == "relationship_exists": return {a, b} | ({index[a]["parent"]} if index[a]["parent"] else set()) | ({index[b]["parent"]} if index[b]["parent"] else set())
-    if q == "path_reconstruction": return set(ancestors(index, a)) | set(ancestors(index, b))
-    if q == "temporal_ordering": return {a, b, c}
-    if q == "cross_state_comparison": return {a, b} | ({index[a]["parent"]} if index[a]["parent"] else set()) | ({index[b]["parent"]} if index[b]["parent"] else set())
+    if q == "multi_hop_traversal": return set(ancestors_from_parent({n:index[n]["parent"] for n in index}, a))
+    if q == "relationship_exists": return {a,b} | ({index[a]["parent"]} if index[a]["parent"] else set()) | ({index[b]["parent"]} if index[b]["parent"] else set())
+    if q == "path_reconstruction": return set(ancestors_from_parent({n:index[n]["parent"] for n in index}, a)) | set(ancestors_from_parent({n:index[n]["parent"] for n in index}, b))
+    if q == "temporal_ordering": return {a,b,c}
+    if q == "cross_state_comparison": return {a,b} | ({index[a]["parent"]} if index[a]["parent"] else set()) | ({index[b]["parent"]} if index[b]["parent"] else set())
     if q == "mixed_multi_hop":
-        out = set(ancestors(index, a)) | {c}
-        p = index[a]["parent"]
-        if p: out.add(p); out.update(index[p]["children"])
+        parent_map={n:index[n]["parent"] for n in index}; out=set(ancestors_from_parent(parent_map,a))|{c}; parent=index[a]["parent"]
+        if parent: out.add(parent); out.update(index[parent]["children"])
         if index[c]["parent"]: out.add(index[c]["parent"])
         return out
     raise ValueError(q)
@@ -66,58 +81,46 @@ def index_closure(index, q, a, b, c):
 def induced_memory(memory, required):
     out = GlyphinMemory(decay_lambda=memory.decay_lambda, alpha=memory.alpha, beta=memory.beta)
     for n in sorted(required):
-        s = memory.states[n]
-        out.add_state(name=s.name, level=s.level, cohesion=s.cohesion, parent=None, frequency=s.frequency, resonance=s.resonance, sigma=s.sigma, created_at=s.created_at)
+        s=memory.states[n]; out.add_state(name=s.name, level=s.level, cohesion=s.cohesion, parent=None, frequency=s.frequency, resonance=s.resonance, sigma=s.sigma, created_at=s.created_at)
     for n in sorted(required):
-        p = memory.states[n].parent
-        if p in out.states: out.link_state(p, n)
+        p=memory.states[n].parent
+        if p in out.states: out.link_state(p,n)
     return out
 
-def token_count(enc, text):
-    return len(enc.encode(text, disallowed_special=()))
+def token_count(enc,text): return len(enc.encode(text,disallowed_special=()))
+def query_payload(q,a,b,c): return json.dumps({"q":q,"a":a,"b":b,"c":c},sort_keys=True,separators=(",",":"))
 
-def query_payload(q, a, b, c):
-    return json.dumps({"q": q, "a": a, "b": b, "c": c}, sort_keys=True, separators=(",", ":"))
-
-def evaluate(memory, variant, encoder, decoder, tok, q, i, index):
-    encoded = encoder(memory); rebuilt = decoder(encoded); state_ref = referee_memory(memory, rebuilt)
-    ns = names(memory); n = len(ns); a, b, c = ns[i % n], ns[(i+n//3) % n], ns[(i+2*n//3) % n]
-    answer = query_spec(memory, q, a, b, c)
-    required = index_closure(index, q, a, b, c)
-    subset = induced_memory(rebuilt, required)
-    got = query_spec(subset, q, a, b, c)
-    qtext = query_payload(q, a, b, c)
-    full = token_count(tok, encoded) + token_count(tok, qtext)
-    selected = (0 if q == "parameter_retrieval" else token_count(tok, encoder(subset))) + token_count(tok, qtext)
-    return {"variant": variant, "query_type": q, "query_index": i, "state_exact": state_ref.exact, "index_exact": required == index_closure(index, q, a, b, c), "answer_exact": got == answer, "total_states": n, "required_states": len(required), "retrieved_state_pct": 100*len(required)/n, "full_input_tokens": full, "selected_input_tokens": selected, "tokens_saved": full-selected, "selected_token_reduction_pct": 100*(full-selected)/full if full else 0}
+def evaluate(memory,variant,encoder,decoder,tok,q,i,index):
+    encoded=encoder(memory); rebuilt=decoder(encoded); state_ref=referee_memory(memory,rebuilt)
+    ns=names(memory); n=len(ns); a,b,c=ns[i%n],ns[(i+n//3)%n],ns[(i+2*n//3)%n]
+    answer=query_spec(memory,q,a,b,c); truth=ground_truth_closure(memory,q,a,b,c); required=index_closure(index,q,a,b,c)
+    subset=induced_memory(rebuilt,required); got=query_spec(subset,q,a,b,c); qtext=query_payload(q,a,b,c)
+    full=token_count(tok,encoded)+token_count(tok,qtext); selected=(0 if q=="parameter_retrieval" else token_count(tok,encoder(subset)))+token_count(tok,qtext)
+    return {"variant":variant,"query_type":q,"query_index":i,"state_exact":state_ref.exact,"index_exact":required==truth,"answer_exact":got==answer,"total_states":n,"required_states":len(required),"retrieved_state_pct":100*len(required)/n,"full_input_tokens":full,"selected_input_tokens":selected,"tokens_saved":full-selected,"selected_token_reduction_pct":100*(full-selected)/full if full else 0}
 
 def summarize(rows):
-    good = [r for r in rows if r["state_exact"] and r["index_exact"] and r["answer_exact"]]
-    return {"cases": len(rows), "state_exact_cases": sum(r["state_exact"] for r in rows), "index_exact_cases": sum(r["index_exact"] for r in rows), "answer_exact_cases": sum(r["answer_exact"] for r in rows), "utility_exact_rate_pct": 100*len(good)/len(rows), "mean_retrieved_state_pct": statistics.mean(r["retrieved_state_pct"] for r in good), "mean_selected_token_reduction_pct": statistics.mean(r["selected_token_reduction_pct"] for r in good)}
+    good=[r for r in rows if r["state_exact"] and r["index_exact"] and r["answer_exact"]]
+    return {"cases":len(rows),"state_exact_cases":sum(r["state_exact"] for r in rows),"index_exact_cases":sum(r["index_exact"] for r in rows),"answer_exact_cases":sum(r["answer_exact"] for r in rows),"utility_exact_rate_pct":100*len(good)/len(rows),"mean_retrieved_state_pct":statistics.mean(r["retrieved_state_pct"] for r in good),"mean_selected_token_reduction_pct":statistics.mean(r["selected_token_reduction_pct"] for r in good)}
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--output", default="glyphin_simulation29_result.json"); args = ap.parse_args()
-    tok = tiktoken.get_encoding(TOKENIZER); rows = []; index_tokens = {v: [] for v in VARIANTS}
+    ap=argparse.ArgumentParser(); ap.add_argument("--output",default="glyphin_simulation29_result.json"); args=ap.parse_args(); tok=tiktoken.get_encoding(TOKENIZER); rows=[]; index_tokens={v:[] for v in VARIANTS}
     for seed in SEEDS:
         for size in SIZES:
-            mem = build_memory(size, seed)
-            for v, (enc, dec) in VARIANTS.items():
-                rebuilt = dec(enc(mem)); index = build_index(rebuilt)
-                index_text = json.dumps(index, sort_keys=True, separators=(",", ":")); index_tokens[v].append(token_count(tok, index_text))
-                for i, q in enumerate(QUERY_TYPES):
-                    r = evaluate(mem, v, enc, dec, tok, q, i, index); r.update(seed=seed, size=size); rows.append(r)
-    mean_index_tokens = {v: statistics.mean(x) for v, x in index_tokens.items()}
-    batches = []
+            mem=build_memory(size,seed)
+            for v,(enc,dec) in VARIANTS.items():
+                rebuilt=dec(enc(mem)); index=build_index(rebuilt); index_text=json.dumps(index,sort_keys=True,separators=(",",":")); index_tokens[v].append(token_count(tok,index_text))
+                for i,q in enumerate(QUERY_TYPES):
+                    r=evaluate(mem,v,enc,dec,tok,q,i,index); r.update(seed=seed,size=size); rows.append(r)
+    mean_index_tokens={v:statistics.mean(x) for v,x in index_tokens.items()}; batches=[]
     for v in VARIANTS:
-        vr = [r for r in rows if r["variant"] == v]
+        vr=[r for r in rows if r["variant"]==v]
         for b in BATCH_SIZES:
-            repeated = (vr * b)[:b]
-            full = sum(r["full_input_tokens"] for r in repeated); indexed = mean_index_tokens[v] + sum(r["selected_input_tokens"] for r in repeated)
-            batches.append({"variant": v, "batch_size": b, "index_tokens_one_time": mean_index_tokens[v], "full_tokens": full, "indexed_selective_tokens": indexed, "tokens_saved_after_index": full-indexed, "indexed_total_reduction_pct": 100*(full-indexed)/full if full else 0, "break_even_reached": indexed < full})
-    out = {"simulation": 29, "benchmark_version": VERSION, "purpose": "Index-discovered query-conditioned retrieval using explicit query anchors and a deterministic structural index.", "fixture_family": "Sim21 high-entropy memory", "seeds": list(SEEDS), "sizes": list(SIZES), "tokenizer": TOKENIZER, "query_types": list(QUERY_TYPES), "variants": list(VARIANTS), "batch_sizes": list(BATCH_SIZES), "total_cases": len(rows), "cases": rows, "summary": {v: summarize([r for r in rows if r["variant"] == v]) for v in VARIANTS}, "mean_index_tokens_by_variant": mean_index_tokens, "batch_amortization": batches, "scope": "Deterministic structural retrieval only. Query anchors are explicit state IDs; semantic query understanding is excluded. The dependency closure is discovered from the index, not supplied by the query specification. Index storage is reported as a one-time persistent cost and amortized over repeated queries. No latency, learned retrieval, LLM semantic equivalence, universal generalization, or optimality claim."}
-    raw = json.dumps(out, sort_keys=True, separators=(",", ":")).encode(); out["result_data_sha256"] = hashlib.sha256(raw).hexdigest()
-    with open(args.output, "w", encoding="utf-8") as f: json.dump(out, f, indent=2, sort_keys=True); f.write("\n")
-    print(json.dumps({"summary": out["summary"], "mean_index_tokens_by_variant": mean_index_tokens, "batch_amortization": batches}, indent=2, sort_keys=True))
+            repeated=(vr*b)[:b]; full=sum(r["full_input_tokens"] for r in repeated); indexed=mean_index_tokens[v]+sum(r["selected_input_tokens"] for r in repeated)
+            batches.append({"variant":v,"batch_size":b,"index_tokens_one_time":mean_index_tokens[v],"full_tokens":full,"indexed_selective_tokens":indexed,"tokens_saved_after_index":full-indexed,"indexed_total_reduction_pct":100*(full-indexed)/full if full else 0,"break_even_reached":indexed<full})
+    out={"simulation":29,"benchmark_version":VERSION,"purpose":"Index-discovered query-conditioned retrieval using explicit query anchors and a deterministic structural index.","fixture_family":"Sim21 high-entropy memory","seeds":list(SEEDS),"sizes":list(SIZES),"tokenizer":TOKENIZER,"query_types":list(QUERY_TYPES),"variants":list(VARIANTS),"batch_sizes":list(BATCH_SIZES),"total_cases":len(rows),"cases":rows,"summary":{v:summarize([r for r in rows if r["variant"]==v]) for v in VARIANTS},"mean_index_tokens_by_variant":mean_index_tokens,"batch_amortization":batches,"scope":"Deterministic structural retrieval only. Query anchors are explicit state IDs; semantic query understanding is excluded. Dependency closure is discovered from the index, not supplied by the query specification. Ground-truth closure is used only for post-hoc index correctness validation. Index storage is reported as a one-time persistent cost and amortized over repeated queries. No latency, learned retrieval, LLM semantic equivalence, universal generalization, or optimality claim."}
+    raw=json.dumps(out,sort_keys=True,separators=(",",":")).encode(); out["result_data_sha256"]=hashlib.sha256(raw).hexdigest()
+    with open(args.output,"w",encoding="utf-8") as f: json.dump(out,f,indent=2,sort_keys=True); f.write("\n")
+    print(json.dumps({"summary":out["summary"],"mean_index_tokens_by_variant":mean_index_tokens,"batch_amortization":batches},indent=2,sort_keys=True))
     return 0 if all(r["state_exact"] and r["index_exact"] and r["answer_exact"] for r in rows) else 1
 
-if __name__ == "__main__": raise SystemExit(main())
+if __name__=="__main__": raise SystemExit(main())
