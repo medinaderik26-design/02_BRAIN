@@ -18,7 +18,7 @@ import time
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Iterable
 
 from glyphin_candidate_search import search
 from glyphin_compression import measure
@@ -64,6 +64,7 @@ class BenchmarkResult:
     cases: list[CaseResult]
     summary: dict[str, object]
     source_sha256: str
+    data_sha256: str
 
 
 def _random_dag(rng: random.Random, node_count: int, probability: float) -> DirectedTopology:
@@ -81,9 +82,7 @@ def _random_cyclic(rng: random.Random, node_count: int, probability: float) -> D
     nodes = sorted(topology.nodes)
     # Force one directed cycle without using graph-specific labels.
     if node_count >= 2:
-        source = nodes[-1]
-        target = nodes[0]
-        topology.add_edge(source, target)
+        topology.add_edge(nodes[-1], nodes[0])
     return topology
 
 
@@ -220,7 +219,8 @@ def run_benchmark(
         "random_cyclic": cyclic_count,
         "adversarial": 10 if adversarial else 0,
     }
-    payload = json.dumps([asdict(case) for case in cases], sort_keys=True, separators=(",", ":")).encode()
+    data_payload = json.dumps([asdict(case) for case in cases], sort_keys=True, separators=(",", ":")).encode()
+    source_hash = sha256(Path(__file__).read_bytes()).hexdigest()
     return BenchmarkResult(
         benchmark_version=BENCHMARK_VERSION,
         seed=seed,
@@ -230,7 +230,8 @@ def run_benchmark(
         graph_families=families,
         cases=cases,
         summary=_summarize(cases),
-        source_sha256=sha256(payload).hexdigest(),
+        source_sha256=source_hash,
+        data_sha256=sha256(data_payload).hexdigest(),
     )
 
 
