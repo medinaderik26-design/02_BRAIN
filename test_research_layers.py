@@ -20,7 +20,7 @@ def test_round_trip_and_referee() -> None:
     source = build_graph()
     encoded = "A->{B->D,C->D}"
     candidate = reconstruct(encoded)
-    assert source.compare(candidate)["exact_match"]
+    assert source.compare(candidate)["exact"]
     result = referee(source, encoded)
     assert result.parse_ok and result.exact_match
     assert result.source_fingerprint == result.candidate_fingerprint
