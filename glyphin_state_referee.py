@@ -2,8 +2,9 @@
 
 The topology referee answers a structural question: did the same graph come
 back? This referee answers the separate state question: did the named
-GlyphState attributes and lineage relationships come back? It intentionally
-uses direct field comparison rather than trusting a producer's success flag.
+GlyphState attributes, lineage relationships, and model parameters come back?
+It intentionally uses direct field comparison rather than trusting a
+producer's success flag.
 """
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ STATE_FIELDS = (
     "sigma",
     "created_at",
 )
+PARAMETER_FIELDS = ("decay_lambda", "alpha", "beta")
 
 
 @dataclass(frozen=True)
@@ -34,6 +36,7 @@ class StateRefereeResult:
     missing_states: tuple[str, ...]
     extra_states: tuple[str, ...]
     field_mismatches: tuple[dict[str, Any], ...]
+    parameter_mismatches: tuple[dict[str, Any], ...]
 
 
 def _state_dict(memory: GlyphinMemory, name: str) -> dict[str, Any]:
@@ -47,7 +50,7 @@ def referee_memory(
     *,
     float_tolerance: float = 0.0,
 ) -> StateRefereeResult:
-    """Compare two memories field-by-field without relying on serialization hashes."""
+    """Compare memories field-by-field without relying on serialization hashes."""
     if float_tolerance < 0:
         raise ValueError("float_tolerance must be non-negative")
 
@@ -74,14 +77,29 @@ def referee_memory(
                     "actual": right,
                 })
 
+    parameter_mismatches: list[dict[str, Any]] = []
+    for field in PARAMETER_FIELDS:
+        expected = getattr(source, field)
+        actual = getattr(candidate, field)
+        equal = expected == actual
+        if isinstance(expected, float) and isinstance(actual, float):
+            equal = abs(expected - actual) <= float_tolerance
+        if not equal:
+            parameter_mismatches.append({
+                "field": field,
+                "expected": expected,
+                "actual": actual,
+            })
+
     return StateRefereeResult(
-        exact=not (missing or extra or mismatches),
+        exact=not (missing or extra or mismatches or parameter_mismatches),
         source_count=len(source_names),
         candidate_count=len(candidate_names),
         missing_states=missing,
         extra_states=extra,
         field_mismatches=tuple(mismatches),
+        parameter_mismatches=tuple(parameter_mismatches),
     )
 
 
-__all__ = ["STATE_FIELDS", "StateRefereeResult", "referee_memory"]
+__all__ = ["STATE_FIELDS", "PARAMETER_FIELDS", "StateRefereeResult", "referee_memory"]
