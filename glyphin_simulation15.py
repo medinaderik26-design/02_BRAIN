@@ -19,13 +19,13 @@ from glyphin_compression import measure
 from glyphin_research_core import GlyphinMemory
 from glyphin_state_referee import referee_memory
 
-VERSION = "15.0"
+VERSION = "15.1"
 NULL = ""
 ESCAPE = "\\"
 
 
 def esc(value: str) -> str:
-    """Escape grammar punctuation. Empty parent field represents None."""
+    """Escape grammar punctuation; empty string is reserved for a null parent."""
     out = []
     for char in str(value):
         if char in (ESCAPE, "|", ";", ","):
@@ -61,7 +61,7 @@ def encode_semantic(memory: GlyphinMemory) -> str:
     records = [params]
     for name in sorted(memory.states):
         state = memory.states[name]
-        parent = NULL if state.parent is None else state.parent
+        parent = "" if state.parent is None else state.parent
         fields = [
             state.name,
             str(state.level),
