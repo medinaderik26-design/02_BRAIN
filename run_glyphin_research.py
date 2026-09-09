@@ -6,6 +6,7 @@ from pathlib import Path
 
 from glyphin_candidate_search import search
 from glyphin_compression import measure
+from glyphin_encoder import encode_explicit_edges
 from glyphin_engine import GlyphinExecutionEngine
 from glyphin_topology_adapter import memory_to_topology
 
@@ -29,21 +30,12 @@ def build_evidence() -> dict[str, object]:
     topology, adaptation = memory_to_topology(engine.memory)
 
     result = search(topology)
-    baseline = next(
-        candidate for candidate in result.exact_candidates
-        if candidate.encoding == result.exact_candidates[-1].encoding
-    ) if result.exact_candidates else None
     shortest = result.shortest_exact
-    baseline_encoding = next(
-        candidate.encoding for candidate in result.exact_candidates
-        if candidate.encoding == ";".join(
-            f"{source}->{target}" for source, target in sorted(topology.edges)
-        )
-    ) if result.exact_candidates else ""
+    baseline_encoding = encode_explicit_edges(topology)
     compression = measure(source=baseline_encoding, encoded=shortest.encoding) if shortest else None
 
     return {
-        "schema": "glyphin-research-run-4",
+        "schema": "glyphin-research-run-5",
         "operations": [
             {"operation": event.operation, "arguments": event.arguments}
             for event in report.events
@@ -62,6 +54,7 @@ def build_evidence() -> dict[str, object]:
             "exact_candidates": [candidate.encoding for candidate in result.exact_candidates],
             "shortest_exact": shortest.encoding if shortest else None,
             "shortest_chars": shortest.chars if shortest else None,
+            "baseline_encoding": baseline_encoding,
             "baseline_chars": len(baseline_encoding),
             "compression_vs_explicit_baseline": compression.__dict__ if compression else None,
             "note": "bounded candidate search; not exhaustive or globally optimal",
@@ -78,9 +71,11 @@ def main() -> None:
         "state_count": evidence["execution"]["state_count"],
         "relationship_count": evidence["execution"]["relationship_count"],
         "reload_exact": evidence["execution"]["reload_exact"],
+        "adaptation_lossless": evidence["adaptation"]["lossless"],
         "candidates_generated": evidence["candidate_search"]["candidates_generated"],
         "exact_candidates": len(evidence["candidate_search"]["exact_candidates"]),
         "shortest_chars": evidence["candidate_search"]["shortest_chars"],
+        "token_reduction_pct": None,
     }, sort_keys=True))
 
 
