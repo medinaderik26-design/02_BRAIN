@@ -37,8 +37,8 @@ def build_memory(n: int, seed: int) -> GlyphinMemory:
         parent = None if i == 0 else names[rng.randrange(i)]
         mem.add_state(
             name=name,
-            level=rng.randrange(-37, 113) + rng.random(),
-            cohesion=rng.random() * 1.999983 - 0.999991,
+            level=rng.randrange(0, 1001),
+            cohesion=rng.random(),
             parent=parent,
             frequency=rng.randrange(1, 100003),
             resonance=rng.random(),
@@ -50,9 +50,8 @@ def build_memory(n: int, seed: int) -> GlyphinMemory:
 
 def metrics(src: str, tokenizer, baseline_tokens: int, exact: bool) -> dict:
     toks = len(tokenizer.encode(src, disallowed_special=()))
-    chars = len(src)
     return {
-        "chars": chars,
+        "chars": len(src),
         "tokens": toks,
         "token_reduction_pct": (1 - toks / baseline_tokens) * 100.0,
         "exact": exact,
@@ -101,7 +100,7 @@ def main() -> None:
         }
     out = {
         "simulation": 21,
-        "benchmark_version": "21.2",
+        "benchmark_version": "21.3",
         "purpose": "Adversarial high-entropy stress test of exact Glyphin memory encodings.",
         "seed": SEED,
         "sizes": SIZES,
