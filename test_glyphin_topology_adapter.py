@@ -30,20 +30,38 @@ class TopologyAdapterTests(unittest.TestCase):
         self.assertEqual(memory.states["a"].parent, "root")
         self.assertEqual(memory.states["b"].parent, "root")
 
-    def test_fan_in_is_reported_as_loss(self):
+    def test_fan_in_is_blocked_in_strict_mode(self):
         topology = DirectedTopology.from_edges(
             [("a", "x"), ("b", "x")], nodes=["a", "b", "x"]
         )
-        _, report = topology_to_memory(topology)
-        self.assertIn(("b", "x"), report.unsupported_edges)
+        memory, report = topology_to_memory(topology)
+        self.assertEqual(
+            set(report.unsupported_edges), {("a", "x"), ("b", "x")}
+        )
+        self.assertEqual(memory.states["x"].parent, None)
+        self.assertEqual(report.target_edges, 0)
 
-    def test_cycle_is_reported_as_unsupported(self):
+    def test_cycle_is_reported_and_blocked_before_relationship_mutation(self):
         topology = DirectedTopology.from_edges(
             [("a", "b"), ("b", "a")], nodes=["a", "b"]
         )
-        _, report = topology_to_memory(topology)
-        self.assertTrue(report.unsupported_edges)
-        self.assertIn(("a", "b"), report.unsupported_edges + [("a", "b")])
+        memory, report = topology_to_memory(topology)
+        self.assertEqual(set(report.unsupported_edges), {("a", "b"), ("b", "a")})
+        self.assertEqual(memory.states["a"].parent, None)
+        self.assertEqual(memory.states["b"].parent, None)
+        self.assertEqual(report.target_edges, 0)
+
+    def test_non_strict_mode_keeps_unambiguous_acyclic_edges(self):
+        topology = DirectedTopology.from_edges(
+            [("root", "a"), ("a", "b"), ("x", "b")],
+            nodes=["root", "a", "b", "x"],
+        )
+        memory, report = topology_to_memory(topology, strict=False)
+        self.assertIn(("x", "b"), report.unsupported_edges)
+        self.assertIn(("root", "a"), report.unsupported_edges)
+        self.assertIn(("a", "b"), report.unsupported_edges)
+        self.assertEqual(memory.states["a"].parent, "root")
+        self.assertEqual(memory.states["b"].parent, None)
 
     def test_isolated_node_survives_memory_to_topology(self):
         memory = GlyphinMemory()
