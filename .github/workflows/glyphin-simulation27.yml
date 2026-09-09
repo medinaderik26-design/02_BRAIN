@@ -1,0 +1,30 @@
+name: Glyphin Simulation 27 Downstream Query Utility
+
+on:
+  push:
+    paths:
+      - 'glyphin_simulation27.py'
+      - 'simulation27.trigger'
+      - 'glyphin_simulation21.py'
+      - 'glyphin_simulation17.py'
+      - 'glyphin_simulation18.py'
+      - 'glyphin_simulation20.py'
+      - 'glyphin_state_referee.py'
+      - '.github/workflows/glyphin-simulation27.yml'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'tiktoken==0.11.0'
+      - run: python glyphin_simulation27.py --output glyphin_simulation27_result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation27-result
+          path: glyphin_simulation27_result.json
