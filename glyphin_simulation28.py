@@ -1,4 +1,4 @@
-"""Glyphin Simulation 28.3 — query-conditioned retrieval benchmark."""
+"""Glyphin Simulation 28.4 — query-conditioned retrieval benchmark."""
 from __future__ import annotations
 import argparse, hashlib, json, statistics
 import tiktoken
@@ -9,28 +9,26 @@ from glyphin_simulation20 import encode_columnar, decode_columnar
 from glyphin_state_referee import referee_memory
 from glyphin_research_core import GlyphinMemory
 
-VERSION="28.3"; SEEDS=(21092026,31092026,41092026,51092026,61092026); SIZES=(256,1024,2048); TOKENIZER="cl100k_base"
+VERSION="28.4"; SEEDS=(21092026,31092026,41092026,51092026,61092026); SIZES=(256,1024,2048); TOKENIZER="cl100k_base"
 VARIANTS={"sim17-compact":(encode_compact,decode_compact),"structural-lineage":(encode_structural,decode_structural),"state-columnar":(encode_columnar,decode_columnar)}
 QUERY_TYPES=("direct_attribute","parent_lookup","child_lookup","multi_hop_traversal","relationship_exists","path_reconstruction","temporal_ordering","parameter_retrieval","cross_state_comparison","mixed_multi_hop")
 
 def names(memory): return sorted(memory.states)
 
-def query_spec(memory,q,i):
+def query_spec(memory,q,a=None,b=None,c=None):
     if q=="parameter_retrieval": return {"decay_lambda":memory.decay_lambda,"alpha":memory.alpha,"beta":memory.beta},set()
-    ns=names(memory); n=len(ns); a=ns[i%n]; b=ns[(i+n//3)%n]; c=ns[(i+2*n//3)%n]; sa,sb,sc=memory.states[a],memory.states[b],memory.states[c]; required={a,b,c}
+    if a not in memory.states: raise KeyError(a)
+    sa=memory.states[a]; required={a}
+    sb=memory.states[b] if b in memory.states else None; sc=memory.states[c] if c in memory.states else None
     if q=="direct_attribute": answer={"name":a,"level":sa.level,"cohesion":sa.cohesion,"frequency":sa.frequency,"resonance":sa.resonance,"sigma":sa.sigma,"created_at":sa.created_at}
-    elif q=="parent_lookup": answer={"state":a,"parent":sa.parent}; required={a}|({sa.parent} if sa.parent else set())
-    elif q=="child_lookup": answer={"state":a,"children":sorted(sa.children)}; required={a}|set(sa.children)
+    elif q=="parent_lookup": answer={"state":a,"parent":sa.parent}; required|=({sa.parent} if sa.parent else set())
+    elif q=="child_lookup": answer={"state":a,"children":sorted(sa.children)}; required|=set(sa.children)
     elif q=="multi_hop_traversal": answer={"state":a,"path":memory.get_path(a)}; required=set(memory.get_path(a))
-    elif q=="relationship_exists":
-        answer={"a":a,"b":b,"a_parent_is_b":sa.parent==b,"b_parent_is_a":sb.parent==a}
-        required={a,b}|({sa.parent} if sa.parent else set())|({sb.parent} if sb.parent else set())
+    elif q=="relationship_exists": answer={"a":a,"b":b,"a_parent_is_b":sa.parent==b,"b_parent_is_a":sb.parent==a}; required|={b}|({sa.parent} if sa.parent else set())|({sb.parent} if sb and sb.parent else set())
     elif q=="path_reconstruction": answer={"a":a,"b":b,"path_a":memory.get_path(a),"path_b":memory.get_path(b)}; required=set(memory.get_path(a))|set(memory.get_path(b))
-    elif q=="temporal_ordering": answer={"states":[a,b,c],"chronological":[x[1] for x in sorted((s.created_at,s.name) for s in (sa,sb,sc))]}
-    elif q=="cross_state_comparison":
-        answer={"a":a,"b":b,"level_delta":sa.level-sb.level,"cohesion_delta":sa.cohesion-sb.cohesion,"frequency_delta":sa.frequency-sb.frequency,"same_parent":sa.parent==sb.parent}
-        required={a,b}|({sa.parent} if sa.parent else set())|({sb.parent} if sb.parent else set())
-    elif q=="mixed_multi_hop": answer={"start":a,"start_parent":sa.parent,"start_path":memory.get_path(a),"parent_children":sorted(memory.states[sa.parent].children) if sa.parent else [],"compare_to":c,"same_parent":sa.parent==sc.parent}; required=set(memory.get_path(a))|({sa.parent} if sa.parent else set())|({*memory.states[sa.parent].children} if sa.parent else set())|({sc.parent} if sc.parent else set())|{c}
+    elif q=="temporal_ordering": answer={"states":[a,b,c],"chronological":[x[1] for x in sorted((s.created_at,s.name) for s in (sa,sb,sc))]}; required|={b,c}
+    elif q=="cross_state_comparison": answer={"a":a,"b":b,"level_delta":sa.level-sb.level,"cohesion_delta":sa.cohesion-sb.cohesion,"frequency_delta":sa.frequency-sb.frequency,"same_parent":sa.parent==sb.parent}; required|={b}|({sa.parent} if sa.parent else set())|({sb.parent} if sb and sb.parent else set())
+    elif q=="mixed_multi_hop": answer={"start":a,"start_parent":sa.parent,"start_path":memory.get_path(a),"parent_children":sorted(memory.states[sa.parent].children) if sa.parent else [],"compare_to":c,"same_parent":sa.parent==sc.parent}; required=set(memory.get_path(a))|({sa.parent} if sa.parent else set())|({*memory.states[sa.parent].children} if sa.parent else set())|({sc.parent} if sc and sc.parent else set())|{c}
     else: raise ValueError(q)
     return answer,required
 
@@ -46,11 +44,15 @@ def induced_memory(memory,required):
 def token_count(enc,text): return len(enc.encode(text,disallowed_special=()))
 
 def evaluate(memory,variant,encoder,decoder,tok,q,i):
-    encoded=encoder(memory); rebuilt=decoder(encoded); state_ref=referee_memory(memory,rebuilt); answer,required=query_spec(memory,q,i); subset=induced_memory(rebuilt,required)
-    if q=="parameter_retrieval": got,_=query_spec(subset,q,i); conditioned_payload=json.dumps({"decay_lambda":subset.decay_lambda,"alpha":subset.alpha,"beta":subset.beta},sort_keys=True,separators=(",",":"))
-    else: got,_=query_spec(subset,q,i); conditioned_payload=encoder(subset)
-    answer_exact=got==answer; full_cost=token_count(tok,encoded); conditioned_cost=token_count(tok,conditioned_payload); query_cost=token_count(tok,f"Q{q}:{i}"); full_input=full_cost+query_cost; conditioned_input=conditioned_cost+query_cost
-    return {"variant":variant,"query_type":q,"query_index":i,"state_exact":state_ref.exact,"answer_exact":answer_exact,"total_states":len(memory.states),"required_states":len(required),"retrieved_state_pct":100*len(required)/len(memory.states),"full_memory_tokens":full_cost,"conditioned_tokens":conditioned_cost,"full_input_tokens":full_input,"conditioned_input_tokens":conditioned_input,"tokens_saved_by_conditioning":full_input-conditioned_input,"conditioned_token_reduction_pct":100*(full_input-conditioned_input)/full_input if full_input else 0,"unnecessary_state_pct":100*(len(memory.states)-len(required))/len(memory.states),"multi_hop_recall_pct":100 if required.issubset(subset.states) else 0}
+    encoded=encoder(memory); rebuilt=decoder(encoded); state_ref=referee_memory(memory,rebuilt)
+    ns=names(memory); n=len(ns); a=ns[i%n]; b=ns[(i+n//3)%n]; c=ns[(i+2*n//3)%n]
+    answer,required=query_spec(memory,q,a,b,c); subset=induced_memory(rebuilt,required)
+    if q=="parameter_retrieval": got,_=query_spec(subset,q); conditioned_payload=json.dumps({"decay_lambda":subset.decay_lambda,"alpha":subset.alpha,"beta":subset.beta},sort_keys=True,separators=(",",":"))
+    else: got,_=query_spec(subset,q,a,b,c); conditioned_payload=encoder(subset)
+    answer_exact=got==answer; full_cost=token_count(tok,encoded); conditioned_cost=token_count(tok,conditioned_payload)
+    query_payload=json.dumps({"q":q,"a":a,"b":b,"c":c},sort_keys=True,separators=(",",":")); query_cost=token_count(tok,query_payload)
+    full_input=full_cost+query_cost; conditioned_input=conditioned_cost+query_cost
+    return {"variant":variant,"query_type":q,"query_index":i,"state_exact":state_ref.exact,"answer_exact":answer_exact,"total_states":len(memory.states),"required_states":len(required),"retrieved_state_pct":100*len(required)/len(memory.states),"full_memory_tokens":full_cost,"conditioned_tokens":conditioned_cost,"query_tokens":query_cost,"full_input_tokens":full_input,"conditioned_input_tokens":conditioned_input,"tokens_saved_by_conditioning":full_input-conditioned_input,"conditioned_token_reduction_pct":100*(full_input-conditioned_input)/full_input if full_input else 0,"unnecessary_state_pct":100*(len(memory.states)-len(required))/len(memory.states),"multi_hop_recall_pct":100 if required.issubset(subset.states) else 0}
 
 def summarize(rows):
     good=[r for r in rows if r["state_exact"] and r["answer_exact"]]; mean=lambda k:statistics.mean(r[k] for r in good) if good else None
@@ -64,7 +66,7 @@ def main():
        for variant,(enc,dec) in VARIANTS.items():
         for i,q in enumerate(QUERY_TYPES):
          r=evaluate(mem,variant,enc,dec,tok,q,i); r.update(seed=seed,size=size); rows.append(r)
-    out={"simulation":28,"benchmark_version":VERSION,"purpose":"Query-conditioned retrieval from reconstructed state.","fixture_family":"Sim21 high-entropy memory","seeds":list(SEEDS),"sizes":list(SIZES),"tokenizer":TOKENIZER,"query_types":list(QUERY_TYPES),"variants":list(VARIANTS),"total_cases":len(rows),"cases":rows,"summary":{v:summarize([r for r in rows if r["variant"]==v]) for v in VARIANTS},"by_query_type":{q:summarize([r for r in rows if r["query_type"]==q]) for q in QUERY_TYPES},"scope":"Deterministic retrieval/representation evidence only; no LLM semantic-equivalence, latency, universal-generalization, or optimality claim."}
+    out={"simulation":28,"benchmark_version":VERSION,"purpose":"Query-conditioned retrieval from reconstructed state with explicit query anchors and dependency closure.","fixture_family":"Sim21 high-entropy memory","seeds":list(SEEDS),"sizes":list(SIZES),"tokenizer":TOKENIZER,"query_types":list(QUERY_TYPES),"variants":list(VARIANTS),"total_cases":len(rows),"cases":rows,"summary":{v:summarize([r for r in rows if r["variant"]==v]) for v in VARIANTS},"by_query_type":{q:summarize([r for r in rows if r["query_type"]==q]) for q in QUERY_TYPES},"scope":"Deterministic retrieval/representation evidence only; query anchor/index discovery is excluded from transported state cost; multi-hop recall tests closure completeness rather than learned retrieval recall; no LLM semantic-equivalence, latency, universal-generalization, or optimality claim."}
     raw=json.dumps(out,sort_keys=True,separators=(",",":")).encode(); out["result_data_sha256"]=hashlib.sha256(raw).hexdigest()
     with open(args.output,"w",encoding="utf-8") as f: json.dump(out,f,indent=2,sort_keys=True); f.write("\n")
     print(json.dumps(out["summary"],indent=2,sort_keys=True)); return 0 if all(r["state_exact"] and r["answer_exact"] for r in rows) else 1
