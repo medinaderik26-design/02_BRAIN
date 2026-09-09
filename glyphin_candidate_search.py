@@ -7,10 +7,11 @@ then uses the independent reconstruction/referee layer to decide fidelity.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import combinations
 from typing import Iterable
 
 from glyphin_compression import measure
-from glyphin_encoder import encode_explicit_edges
+from glyphin_encoder import encode_chains_and_edges, encode_explicit_edges
 from glyphin_referee import referee
 from glyphin_topology import DirectedTopology
 
@@ -33,6 +34,14 @@ class SearchResult:
     candidates_evaluated: int
     exact_candidates: tuple[CandidateResult, ...]
     shortest_exact: CandidateResult | None
+
+
+def _isolated_statements(topology: DirectedTopology) -> list[str]:
+    return [
+        node
+        for node in sorted(topology.nodes)
+        if topology.in_degree(node) == 0 and topology.out_degree(node) == 0
+    ]
 
 
 def _edge_statements(topology: DirectedTopology) -> Iterable[str]:
@@ -65,17 +74,46 @@ def _chain_candidates(topology: DirectedTopology) -> Iterable[str]:
             yield "->".join(chain)
 
 
+def _compose_chains(
+    topology: DirectedTopology, chains: tuple[str, ...]
+) -> str:
+    """Compose non-overlapping chain replacements with remaining edge statements."""
+    covered: set[str] = set()
+    for chain in chains:
+        covered.update(_edges_from_chain(chain))
+
+    remaining = [edge for edge in _edge_statements(topology) if edge not in covered]
+    statements = list(chains) + remaining + _isolated_statements(topology)
+    return ";".join(statements)
+
+
 def generate_candidates(topology: DirectedTopology) -> list[str]:
     """Generate deterministic bounded candidates without graph-specific lookup."""
-    candidates: set[str] = {encode_explicit_edges(topology)}
+    candidates: set[str] = {
+        encode_explicit_edges(topology),
+        encode_chains_and_edges(topology),
+    }
     edges = list(_edge_statements(topology))
+    chains = sorted(set(_chain_candidates(topology)))
+
+    # One-chain substitutions cover the common path-compression case.
+    for chain in chains:
+        candidates.add(_compose_chains(topology, (chain,)))
+
+    # Small combinations allow independent chains to be compressed together
+    # without turning this bounded search into an unbounded optimizer.
+    for width in (2, 3):
+        for combo in combinations(chains, width):
+            covered_sets = [_edges_from_chain(chain) for chain in combo]
+            if any(covered_sets[i] & covered_sets[j] for i in range(width) for j in range(i + 1, width)):
+                continue
+            candidates.add(_compose_chains(topology, combo))
+
+    # Keep the finite search explicit: an individual edge candidate is useful
+    # for negative/referee cases but cannot encode unrelated nodes by itself.
     candidates.update(edges)
 
-    for chain in sorted(set(_chain_candidates(topology))):
-        remaining = [edge for edge in edges if edge not in _edges_from_chain(chain)]
-        candidates.add(";".join([chain, *remaining]))
-
-    return sorted(candidate for candidate in candidates if candidate)
+    return sorted(candidates)
 
 
 def evaluate_candidates(
