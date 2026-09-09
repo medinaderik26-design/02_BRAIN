@@ -5,6 +5,11 @@ back? This referee answers the separate state question: did the named
 GlyphState attributes, lineage relationships, and model parameters come back?
 It intentionally uses direct field comparison rather than trusting a
 producer's success flag.
+
+Child order is treated as unordered because ``children`` is a derived index
+of parent relationships, not an independent semantic ordering. Encoders may
+reconstruct states in a different dependency order while preserving exactly
+the same lineage.
 """
 from __future__ import annotations
 
@@ -66,9 +71,12 @@ def referee_memory(
         for field in STATE_FIELDS:
             left = expected[field]
             right = actual[field]
-            equal = left == right
-            if field in {"cohesion", "resonance"} and isinstance(left, float) and isinstance(right, float):
-                equal = abs(left - right) <= float_tolerance
+            if field == "children":
+                equal = set(left) == set(right)
+            else:
+                equal = left == right
+                if field in {"cohesion", "resonance"} and isinstance(left, float) and isinstance(right, float):
+                    equal = abs(left - right) <= float_tolerance
             if not equal:
                 mismatches.append({
                     "state": name,
