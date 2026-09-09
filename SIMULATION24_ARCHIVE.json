@@ -1,0 +1,32 @@
+{
+  "artifact_digest": "sha256:54eb297ffb59cde22a8d08da083b7fcc173fcda6f223dcb138272d7ff1bf8369",
+  "artifact_id": 10127634628,
+  "benchmark_version": "24.0",
+  "first_observed_break_even_size": 256,
+  "head_sha": "41b91b0ee20292d944cd7d341278a455529f4533",
+  "result_data_sha256": "f40ad76cc89756ece8281858f35aac483972af50ef6c475e078b04abc9f67681",
+  "scope": "Benchmark-specific evidence only; no universal scaling or optimality claim.",
+  "simulation": 24,
+  "sizes": [256, 512, 1024, 2048, 4096, 8192],
+  "state_columnar_vs_compact": [
+    {"size": 256, "state_columnar_advantage_pp": 18.814901894925406},
+    {"size": 512, "state_columnar_advantage_pp": 19.037119732068092},
+    {"size": 1024, "state_columnar_advantage_pp": 18.996010034309514},
+    {"size": 2048, "state_columnar_advantage_pp": 18.607279968363194},
+    {"size": 4096, "state_columnar_advantage_pp": 18.372822601611922},
+    {"size": 8192, "state_columnar_advantage_pp": 18.379374551075394}
+  ],
+  "summary": {
+    "sim17-compact": {"exact_cases": 6, "exact_rate_pct": 100.0, "mean_token_reduction_pct": 35.13690006536392, "median_token_reduction_pct": 35.11957852131072, "token_reduction_slope_per_log2_state": 0.020231630210625035, "total_cases": 6},
+    "structural-lineage": {"exact_cases": 6, "exact_rate_pct": 100.0, "mean_token_reduction_pct": 52.3786771931791, "median_token_reduction_pct": 52.431285761863165, "token_reduction_slope_per_log2_state": -0.26511752651493115, "total_cases": 6},
+    "state-columnar": {"exact_cases": 6, "exact_rate_pct": 100.0, "mean_token_reduction_pct": 53.8381515290895, "median_token_reduction_pct": 53.80335054939793, "token_reduction_slope_per_log2_state": -0.11003288911980036, "total_cases": 6}
+  },
+  "tokenizer": "cl100k_base",
+  "variants": ["sim17-compact", "structural-lineage", "state-columnar"],
+  "verification": {
+    "artifact_zip_sha256": "54eb297ffb59cde22a8d08da083b7fcc173fcda6f223dcb138272d7ff1bf8369",
+    "result_hash_recomputed": true
+  },
+  "workflow_job_id": 102668658057,
+  "workflow_run_id": 34412106255
+}
