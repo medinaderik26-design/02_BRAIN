@@ -1,0 +1,20 @@
+{
+  "simulation": 19,
+  "title": "Structural Dictionary Compression",
+  "run_id": 34402046689,
+  "job_id": 102636029506,
+  "head_sha": "d0f3c8871e547dd9bdb0ccabda26e5a748931e61",
+  "artifact_id": 10123832189,
+  "artifact_digest": "sha256:adfde1f758de54d634f0cfb9959b6e52ca64b6950b1fa99de1145056b64018ef",
+  "result_data_sha256": "488e6e845d7e17dd6639bb3df490670c1b0cbbf2898c1b0d69a7c8969b1461fa",
+  "tokenizer": "cl100k_base",
+  "cases": 21,
+  "exact_cases": 21,
+  "exact_rate_pct": 100.0,
+  "variant_summary": {
+    "sim17-compact": {"mean_token_reduction_pct": 43.44184591393631, "median_token_reduction_pct": 42.888888888888886, "mean_char_reduction_pct": 66.49867218593842},
+    "structural-lineage": {"mean_token_reduction_pct": 56.161094398084536, "median_token_reduction_pct": 56.08888888888889, "mean_char_reduction_pct": 72.73749149886619},
+    "structural-dictionary": {"mean_token_reduction_pct": 56.17558572159707, "median_token_reduction_pct": 56.344950848972296, "mean_char_reduction_pct": 74.10482464896421}
+  },
+  "interpretation": "Repeated-sigma dictionary coding produced essentially no additional mean token reduction over structural-lineage, despite improving character reduction. The major gain remains structural factorization. This is evidence on the tested fixture family, not a global optimum or universal result."
+}
