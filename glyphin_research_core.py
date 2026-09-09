@@ -43,7 +43,7 @@ class GlyphState:
 class GlyphinMemory:
     """Persistent-capable symbolic memory for Glyphin experiments."""
 
-    VERSION = "glyphin-research-core-0.3"
+    VERSION = "glyphin-research-core-0.4"
 
     def __init__(self, decay_lambda: float = 0.01, alpha: float = 0.25, beta: float = 0.25):
         if decay_lambda < 0 or alpha < 0 or beta < 0:
@@ -55,15 +55,24 @@ class GlyphinMemory:
 
     def add_state(self, name: str, *, level: int = 0, cohesion: float = 0.0,
                   parent: Optional[str] = None, frequency: int = 1,
-                  resonance: float = 1.0, sigma: str = "seed") -> GlyphState:
+                  resonance: float = 1.0, sigma: str = "seed",
+                  created_at: Optional[str] = None) -> GlyphState:
         if name in self.states:
             raise ValueError(f"state already exists: {name}")
         if parent is not None and parent not in self.states:
             raise KeyError(f"parent does not exist: {parent}")
         if parent == name:
             raise ValueError("a state cannot be its own parent")
-        state = GlyphState(name=name, level=level, cohesion=cohesion, parent=parent,
-                           frequency=frequency, resonance=resonance, sigma=sigma)
+        state = GlyphState(
+            name=name,
+            level=level,
+            cohesion=cohesion,
+            parent=parent,
+            frequency=frequency,
+            resonance=resonance,
+            sigma=sigma,
+            created_at=created_at if created_at is not None else datetime.now(timezone.utc).isoformat(),
+        )
         self.states[name] = state
         if parent is not None:
             self._add_child(parent, name)
