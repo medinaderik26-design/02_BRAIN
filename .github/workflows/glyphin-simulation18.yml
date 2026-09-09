@@ -1,0 +1,33 @@
+name: Glyphin Simulation 18 Structural Semantic Compression
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - glyphin_simulation18.py
+      - simulation18.trigger
+      - glyphin_simulation17.py
+      - glyphin_research_core.py
+      - glyphin_state_referee.py
+      - glyphin_compression.py
+
+jobs:
+  simulation18-structural:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tokenizer
+        run: pip install tiktoken==0.11.0
+      - name: Run Simulation 18
+        run: python glyphin_simulation18.py --output glyphin_simulation18_result.json
+      - name: Upload Simulation 18 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation18-structural-result
+          path: glyphin_simulation18_result.json
