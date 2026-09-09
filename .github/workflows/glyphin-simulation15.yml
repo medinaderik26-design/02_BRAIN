@@ -1,0 +1,26 @@
+name: Glyphin Simulation 15 Semantic Compression
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - simulation15.trigger
+
+jobs:
+  simulation15-semantic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run Simulation 15
+        run: python glyphin_simulation15.py --output glyphin_simulation15_result.json
+      - name: Upload Simulation 15 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation15-semantic-result
+          path: glyphin_simulation15_result.json
