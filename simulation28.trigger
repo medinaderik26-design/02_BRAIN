@@ -1,1 +1,1 @@
-Simulation 28.1 trigger: query-conditioned retrieval benchmark rerun
+Simulation 28.2 trigger: query-conditioned retrieval benchmark rerun after empty-subset fix
