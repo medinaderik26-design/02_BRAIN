@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
-from glyphin_compression import measure_compression
+from glyphin_compression import measure
 from glyphin_encoder import encode_explicit_edges
 from glyphin_referee import referee
 from glyphin_topology import DirectedTopology
@@ -40,12 +40,15 @@ def _edge_statements(topology: DirectedTopology) -> Iterable[str]:
         yield f"{source}->{target}"
 
 
+def _edges_from_chain(chain: str) -> set[str]:
+    nodes = chain.split("->")
+    return {f"{nodes[i]}->{nodes[i + 1]}" for i in range(len(nodes) - 1)}
+
+
 def _chain_candidates(topology: DirectedTopology) -> Iterable[str]:
     """Generate maximal chains beginning at structural boundary nodes."""
     for source in sorted(topology.nodes):
-        if topology.out_degree(source) == 0:
-            continue
-        if topology.in_degree(source) == 1:
+        if topology.out_degree(source) == 0 or topology.in_degree(source) == 1:
             continue
         for target in topology.successors(source):
             chain = [source, target]
@@ -64,34 +67,25 @@ def _chain_candidates(topology: DirectedTopology) -> Iterable[str]:
 
 def generate_candidates(topology: DirectedTopology) -> list[str]:
     """Generate deterministic bounded candidates without graph-specific lookup."""
-    candidates: set[str] = set()
+    candidates: set[str] = {encode_explicit_edges(topology)}
     edges = list(_edge_statements(topology))
-    candidates.add(encode_explicit_edges(topology))
     candidates.update(edges)
 
-    chains = sorted(set(_chain_candidates(topology)))
-    for chain in chains:
+    for chain in sorted(set(_chain_candidates(topology))):
         remaining = [edge for edge in edges if edge not in _edges_from_chain(chain)]
         candidates.add(";".join([chain, *remaining]))
 
     return sorted(candidate for candidate in candidates if candidate)
 
 
-def _edges_from_chain(chain: str) -> set[str]:
-    nodes = chain.split("->")
-    return {f"{nodes[i]}->{nodes[i + 1]}" for i in range(len(nodes) - 1)}
-
-
 def evaluate_candidates(
     topology: DirectedTopology, candidates: Iterable[str]
 ) -> list[CandidateResult]:
+    baseline = encode_explicit_edges(topology)
     results: list[CandidateResult] = []
     for encoded in candidates:
         result = referee(topology, encoded)
-        metrics = measure_compression(
-            source=encode_explicit_edges(topology), encoded=encoded
-        )
-        comparison = result.comparison
+        metrics = measure(source=baseline, encoded=encoded)
         results.append(
             CandidateResult(
                 encoding=encoded,
@@ -100,8 +94,8 @@ def evaluate_candidates(
                 chars=metrics.encoded_chars,
                 words=metrics.encoded_words,
                 token_count=metrics.encoded_tokens,
-                missing_edges=tuple(tuple(edge) for edge in comparison.get("missing_edges", [])),
-                extra_edges=tuple(tuple(edge) for edge in comparison.get("extra_edges", [])),
+                missing_edges=tuple(result.missing_edges),
+                extra_edges=tuple(result.extra_edges),
             )
         )
     return results
@@ -110,7 +104,12 @@ def evaluate_candidates(
 def search(topology: DirectedTopology) -> SearchResult:
     candidates = generate_candidates(topology)
     evaluated = evaluate_candidates(topology, candidates)
-    exact = tuple(sorted((item for item in evaluated if item.exact), key=lambda item: (item.chars, item.words, item.encoding)))
+    exact = tuple(
+        sorted(
+            (item for item in evaluated if item.exact),
+            key=lambda item: (item.chars, item.words, item.encoding),
+        )
+    )
     return SearchResult(
         candidates_generated=len(candidates),
         candidates_evaluated=len(evaluated),
