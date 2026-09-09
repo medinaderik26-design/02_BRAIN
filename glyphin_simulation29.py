@@ -1,4 +1,4 @@
-"""Glyphin Simulation 29.0: index-discovered query-conditioned retrieval."""
+"""Glyphin Simulation 29.1: index-discovered query-conditioned retrieval."""
 from __future__ import annotations
 import argparse, hashlib, json, statistics
 import tiktoken
@@ -8,80 +8,74 @@ from glyphin_simulation18 import encode_structural, decode_structural
 from glyphin_simulation20 import encode_columnar, decode_columnar
 from glyphin_state_referee import referee_memory
 from glyphin_research_core import GlyphinMemory
-
-VERSION = "29.0"
-SEEDS = (21092026, 31092026, 41092026, 51092026, 61092026)
-SIZES = (256, 1024, 2048)
-BATCH_SIZES = (1, 4, 16, 64, 256)
-TOKENIZER = "cl100k_base"
-VARIANTS = {"sim17-compact": (encode_compact, decode_compact), "structural-lineage": (encode_structural, decode_structural), "state-columnar": (encode_columnar, decode_columnar)}
-QUERY_TYPES = ("direct_attribute", "parent_lookup", "child_lookup", "multi_hop_traversal", "relationship_exists", "path_reconstruction", "temporal_ordering", "parameter_retrieval", "cross_state_comparison", "mixed_multi_hop")
+VERSION="29.1"; SEEDS=(21092026,31092026,41092026,51092026,61092026); SIZES=(256,1024,2048); BATCH_SIZES=(1,4,16,64,256); TOKENIZER="cl100k_base"
+VARIANTS={"sim17-compact":(encode_compact,decode_compact),"structural-lineage":(encode_structural,decode_structural),"state-columnar":(encode_columnar,decode_columnar)}
+QUERY_TYPES=("direct_attribute","parent_lookup","child_lookup","multi_hop_traversal","relationship_exists","path_reconstruction","temporal_ordering","parameter_retrieval","cross_state_comparison","mixed_multi_hop")
 
 def names(memory): return sorted(memory.states)
-
-def query_spec(memory, q, a, b, c):
-    if q == "parameter_retrieval": return {"decay_lambda": memory.decay_lambda, "alpha": memory.alpha, "beta": memory.beta}
-    sa, sb, sc = memory.states[a], memory.states[b], memory.states[c]
-    if q == "direct_attribute": return {"name": a, "level": sa.level, "cohesion": sa.cohesion, "frequency": sa.frequency, "resonance": sa.resonance, "sigma": sa.sigma, "created_at": sa.created_at}
-    if q == "parent_lookup": return {"state": a, "parent": sa.parent}
-    if q == "child_lookup": return {"state": a, "children": sorted(sa.children)}
-    if q == "multi_hop_traversal": return {"state": a, "path": memory.get_path(a)}
-    if q == "relationship_exists": return {"a": a, "b": b, "a_parent_is_b": sa.parent == b, "b_parent_is_a": sb.parent == a}
-    if q == "path_reconstruction": return {"a": a, "b": b, "path_a": memory.get_path(a), "path_b": memory.get_path(b)}
-    if q == "temporal_ordering": return {"states": [a, b, c], "chronological": [x[1] for x in sorted((s.created_at, s.name) for s in (sa, sb, sc))]}
-    if q == "cross_state_comparison": return {"a": a, "b": b, "level_delta": sa.level-sb.level, "cohesion_delta": sa.cohesion-sb.cohesion, "frequency_delta": sa.frequency-sb.frequency, "same_parent": sa.parent == sb.parent}
-    if q == "mixed_multi_hop": return {"start": a, "start_parent": sa.parent, "start_path": memory.get_path(a), "parent_children": sorted(memory.states[sa.parent].children) if sa.parent else [], "compare_to": c, "same_parent": sa.parent == sc.parent}
+def query_spec(memory,q,a,b,c):
+    if q=="parameter_retrieval": return {"decay_lambda":memory.decay_lambda,"alpha":memory.alpha,"beta":memory.beta}
+    sa=memory.states[a]
+    if q=="direct_attribute": return {"name":a,"level":sa.level,"cohesion":sa.cohesion,"frequency":sa.frequency,"resonance":sa.resonance,"sigma":sa.sigma,"created_at":sa.created_at}
+    if q=="parent_lookup": return {"state":a,"parent":sa.parent}
+    if q=="child_lookup": return {"state":a,"children":sorted(sa.children)}
+    if q=="multi_hop_traversal": return {"state":a,"path":memory.get_path(a)}
+    sb=memory.states[b]
+    if q=="relationship_exists": return {"a":a,"b":b,"a_parent_is_b":sa.parent==b,"b_parent_is_a":sb.parent==a}
+    if q=="path_reconstruction": return {"a":a,"b":b,"path_a":memory.get_path(a),"path_b":memory.get_path(b)}
+    if q=="temporal_ordering":
+        sc=memory.states[c]; return {"states":[a,b,c],"chronological":[x[1] for x in sorted((s.created_at,s.name) for s in (sa,sb,sc))]}
+    if q=="cross_state_comparison": return {"a":a,"b":b,"level_delta":sa.level-sb.level,"cohesion_delta":sa.cohesion-sb.cohesion,"frequency_delta":sa.frequency-sb.frequency,"same_parent":sa.parent==sb.parent}
+    if q=="mixed_multi_hop":
+        sc=memory.states[c]; return {"start":a,"start_parent":sa.parent,"start_path":memory.get_path(a),"parent_children":sorted(memory.states[sa.parent].children) if sa.parent else [],"compare_to":c,"same_parent":sa.parent==sc.parent}
     raise ValueError(q)
 
-def build_index(memory):
-    return {n: {"parent": memory.states[n].parent, "children": sorted(memory.states[n].children)} for n in names(memory)}
-
-def ancestors_from_parent(parent_map, node):
-    out, seen = [], set(); cur = node
-    while cur is not None and cur not in seen:
-        seen.add(cur); out.append(cur); cur = parent_map[cur]
+def build_index(memory): return {n:{"parent":memory.states[n].parent,"children":sorted(memory.states[n].children)} for n in names(memory)}
+def ancestors_from_parent(parent_map,node):
+    out=[]; seen=set(); cur=node
+    while cur is not None and cur not in seen: seen.add(cur); out.append(cur); cur=parent_map[cur]
     return out
 
-def ground_truth_closure(memory, q, a, b, c):
-    if q == "parameter_retrieval": return set()
-    p = {n: memory.states[n].parent for n in names(memory)}
-    children = {n: set(memory.states[n].children) for n in names(memory)}
-    if q == "direct_attribute": return {a}
-    if q == "parent_lookup": return {a} | ({p[a]} if p[a] else set())
-    if q == "child_lookup": return {a} | children[a]
-    if q == "multi_hop_traversal": return set(ancestors_from_parent(p, a))
-    if q == "relationship_exists": return {a, b} | ({p[a]} if p[a] else set()) | ({p[b]} if p[b] else set())
-    if q == "path_reconstruction": return set(ancestors_from_parent(p, a)) | set(ancestors_from_parent(p, b))
-    if q == "temporal_ordering": return {a, b, c}
-    if q == "cross_state_comparison": return {a, b} | ({p[a]} if p[a] else set()) | ({p[b]} if p[b] else set())
-    if q == "mixed_multi_hop":
-        out = set(ancestors_from_parent(p, a)) | {c}; parent = p[a]
+def ground_truth_closure(memory,q,a,b,c):
+    if q=="parameter_retrieval": return set()
+    p={n:memory.states[n].parent for n in names(memory)}; children={n:set(memory.states[n].children) for n in names(memory)}
+    if q=="direct_attribute": return {a}
+    if q=="parent_lookup": return {a}|({p[a]} if p[a] else set())
+    if q=="child_lookup": return {a}|children[a]
+    if q=="multi_hop_traversal": return set(ancestors_from_parent(p,a))
+    if q=="relationship_exists": return {a,b}|({p[a]} if p[a] else set())|({p[b]} if p[b] else set())
+    if q=="path_reconstruction": return set(ancestors_from_parent(p,a))|set(ancestors_from_parent(p,b))
+    if q=="temporal_ordering": return {a,b,c}
+    if q=="cross_state_comparison": return {a,b}|({p[a]} if p[a] else set())|({p[b]} if p[b] else set())
+    if q=="mixed_multi_hop":
+        out=set(ancestors_from_parent(p,a))|{c}; parent=p[a]
         if parent: out.add(parent); out.update(children[parent])
         if p[c]: out.add(p[c])
         return out
     raise ValueError(q)
 
-def index_closure(index, q, a, b, c):
-    if q == "parameter_retrieval": return set()
-    if q == "direct_attribute": return {a}
-    if q == "parent_lookup": return {a} | ({index[a]["parent"]} if index[a]["parent"] else set())
-    if q == "child_lookup": return {a} | set(index[a]["children"])
-    if q == "multi_hop_traversal": return set(ancestors_from_parent({n:index[n]["parent"] for n in index}, a))
-    if q == "relationship_exists": return {a,b} | ({index[a]["parent"]} if index[a]["parent"] else set()) | ({index[b]["parent"]} if index[b]["parent"] else set())
-    if q == "path_reconstruction": return set(ancestors_from_parent({n:index[n]["parent"] for n in index}, a)) | set(ancestors_from_parent({n:index[n]["parent"] for n in index}, b))
-    if q == "temporal_ordering": return {a,b,c}
-    if q == "cross_state_comparison": return {a,b} | ({index[a]["parent"]} if index[a]["parent"] else set()) | ({index[b]["parent"]} if index[b]["parent"] else set())
-    if q == "mixed_multi_hop":
-        parent_map={n:index[n]["parent"] for n in index}; out=set(ancestors_from_parent(parent_map,a))|{c}; parent=index[a]["parent"]
+def index_closure(index,q,a,b,c):
+    if q=="parameter_retrieval": return set()
+    p={n:index[n]["parent"] for n in index}
+    if q=="direct_attribute": return {a}
+    if q=="parent_lookup": return {a}|({index[a]["parent"]} if index[a]["parent"] else set())
+    if q=="child_lookup": return {a}|set(index[a]["children"])
+    if q=="multi_hop_traversal": return set(ancestors_from_parent(p,a))
+    if q=="relationship_exists": return {a,b}|({index[a]["parent"]} if index[a]["parent"] else set())|({index[b]["parent"]} if index[b]["parent"] else set())
+    if q=="path_reconstruction": return set(ancestors_from_parent(p,a))|set(ancestors_from_parent(p,b))
+    if q=="temporal_ordering": return {a,b,c}
+    if q=="cross_state_comparison": return {a,b}|({index[a]["parent"]} if index[a]["parent"] else set())|({index[b]["parent"]} if index[b]["parent"] else set())
+    if q=="mixed_multi_hop":
+        out=set(ancestors_from_parent(p,a))|{c}; parent=index[a]["parent"]
         if parent: out.add(parent); out.update(index[parent]["children"])
         if index[c]["parent"]: out.add(index[c]["parent"])
         return out
     raise ValueError(q)
 
-def induced_memory(memory, required):
-    out = GlyphinMemory(decay_lambda=memory.decay_lambda, alpha=memory.alpha, beta=memory.beta)
+def induced_memory(memory,required):
+    out=GlyphinMemory(decay_lambda=memory.decay_lambda,alpha=memory.alpha,beta=memory.beta)
     for n in sorted(required):
-        s=memory.states[n]; out.add_state(name=s.name, level=s.level, cohesion=s.cohesion, parent=None, frequency=s.frequency, resonance=s.resonance, sigma=s.sigma, created_at=s.created_at)
+        s=memory.states[n]; out.add_state(name=s.name,level=s.level,cohesion=s.cohesion,parent=None,frequency=s.frequency,resonance=s.resonance,sigma=s.sigma,created_at=s.created_at)
     for n in sorted(required):
         p=memory.states[n].parent
         if p in out.states: out.link_state(p,n)
@@ -122,5 +116,4 @@ def main():
     with open(args.output,"w",encoding="utf-8") as f: json.dump(out,f,indent=2,sort_keys=True); f.write("\n")
     print(json.dumps({"summary":out["summary"],"mean_index_tokens_by_variant":mean_index_tokens,"batch_amortization":batches},indent=2,sort_keys=True))
     return 0 if all(r["state_exact"] and r["index_exact"] and r["answer_exact"] for r in rows) else 1
-
 if __name__=="__main__": raise SystemExit(main())
