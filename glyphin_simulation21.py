@@ -14,7 +14,9 @@ import tiktoken
 
 from glyphin_research_core import GlyphinMemory
 from glyphin_state_referee import referee_memory
-from glyphin_simulation20 import encode_sim17_compact, encode_structural_lineage, encode_state_columnar
+from glyphin_simulation20 import encode_columnar, decode_columnar
+from glyphin_simulation18 import encode_structural, decode_structural
+from glyphin_simulation17 import encode_compact, decode_compact
 
 SEED = 21092026
 SIZES = [4, 8, 16, 32, 64, 128, 256]
@@ -34,8 +36,6 @@ def build_memory(n: int, seed: int) -> GlyphinMemory:
     for i, name in enumerate(names):
         parent = None
         if i:
-            # Irregular but acyclic parent selection; deliberately avoid a
-            # single chain and minimize repeated local structure.
             parent = names[rng.randrange(i)]
         mem.add_state(
             name=name,
@@ -50,8 +50,8 @@ def build_memory(n: int, seed: int) -> GlyphinMemory:
     return mem
 
 
-def metrics(src: str, enc, baseline_tokens: int, exact: bool) -> dict:
-    toks = len(enc.encode(src))
+def metrics(src: str, tokenizer, baseline_tokens: int, exact: bool) -> dict:
+    toks = len(tokenizer.encode(src, disallowed_special=()))
     chars = len(src)
     return {
         "chars": chars,
@@ -65,40 +65,37 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", default="glyphin_simulation21_result.json")
     args = ap.parse_args()
-    enc = tiktoken.get_encoding(ENCODING)
+    tokenizer = tiktoken.get_encoding(ENCODING)
+    variants = {
+        "sim17-compact": (encode_compact, decode_compact),
+        "structural-lineage": (encode_structural, decode_structural),
+        "state-columnar": (encode_columnar, decode_columnar),
+    }
     cases = []
-    variants = ["sim17-compact", "structural-lineage", "state-columnar"]
     for n in SIZES:
         mem = build_memory(n, SEED + n)
         baseline = mem.to_json()
-        base_tokens = len(enc.encode(baseline))
-        encoded = {
-            "sim17-compact": encode_sim17_compact(mem),
-            "structural-lineage": encode_structural_lineage(mem),
-            "state-columnar": encode_state_columnar(mem),
-        }
-        for variant in variants:
-            text = encoded[variant]
-            # Each existing decoder returns a fresh GlyphinMemory.
-            if variant == "sim17-compact":
-                from glyphin_simulation20 import decode_sim17_compact
-                rebuilt = decode_sim17_compact(text)
-            elif variant == "structural-lineage":
-                from glyphin_simulation20 import decode_structural_lineage
-                rebuilt = decode_structural_lineage(text)
-            else:
-                from glyphin_simulation20 import decode_state_columnar
-                rebuilt = decode_state_columnar(text)
+        base_tokens = len(tokenizer.encode(baseline, disallowed_special=()))
+        for variant, (encoder, decoder) in variants.items():
+            text = encoder(mem)
+            rebuilt = decoder(text)
             ref = referee_memory(mem, rebuilt)
-            m = metrics(text, enc, base_tokens, ref.exact)
-            cases.append({"size": n, "variant": variant, "baseline_tokens": base_tokens, **m,
-                          "missing_states": ref.missing_states, "extra_states": ref.extra_states,
-                          "field_mismatches": ref.field_mismatches, "parameter_mismatches": ref.parameter_mismatches})
+            m = metrics(text, tokenizer, base_tokens, ref.exact)
+            cases.append({
+                "size": n,
+                "variant": variant,
+                "baseline_tokens": base_tokens,
+                **m,
+                "missing_states": ref.missing_states,
+                "extra_states": ref.extra_states,
+                "field_mismatches": ref.field_mismatches,
+                "parameter_mismatches": ref.parameter_mismatches,
+            })
     summary = {}
-    for v in variants:
-        rows = [x for x in cases if x["variant"] == v]
+    for variant in variants:
+        rows = [x for x in cases if x["variant"] == variant]
         reds = [x["token_reduction_pct"] for x in rows]
-        summary[v] = {
+        summary[variant] = {
             "mean_token_reduction_pct": sum(reds) / len(reds),
             "median_token_reduction_pct": sorted(reds)[len(reds)//2],
             "exact_cases": sum(x["exact"] for x in rows),
@@ -106,11 +103,12 @@ def main() -> None:
         }
     out = {
         "simulation": 21,
-        "benchmark_version": "21.0",
+        "benchmark_version": "21.1",
         "purpose": "Adversarial high-entropy stress test of exact Glyphin memory encodings.",
         "seed": SEED,
         "sizes": SIZES,
         "tokenizer": ENCODING,
+        "variants": list(variants),
         "cases": cases,
         "summary": summary,
         "result_data_sha256": hashlib.sha256(json.dumps(cases, sort_keys=True).encode()).hexdigest(),
