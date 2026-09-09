@@ -1,7 +1,8 @@
-"""Deterministic tests for glyphin_research_core."""
+"""Deterministic tests for the Glyphin research core."""
 
-import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from glyphin_research_core import GlyphinMemory
 
@@ -47,10 +48,22 @@ class GlyphinResearchCoreTests(unittest.TestCase):
         m = self.make_memory()
         m.reinforce("child", kappa=0.5)
         encoded = m.to_json()
-        self.assertEqual(encoded, m.to_json())
         restored = GlyphinMemory.from_json(encoded)
         self.assertEqual(restored.to_json(), encoded)
         self.assertEqual(restored.get_path("grandchild"), m.get_path("grandchild"))
+        self.assertEqual(restored.states["root"].children, ["child"])
+        self.assertEqual(restored.states["child"].children, ["grandchild"])
+
+    def test_persistence_round_trip(self):
+        m = self.make_memory()
+        m.reinforce("child", kappa=0.5)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "glyphin_memory.json"
+            saved = m.save(path)
+            self.assertEqual(saved, path)
+            restored = GlyphinMemory.load(path)
+            self.assertEqual(restored.to_json(), m.to_json())
+            self.assertEqual(restored.states["root"].children, ["child"])
 
     def test_hyperstate(self):
         m = self.make_memory()
