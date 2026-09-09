@@ -1,0 +1,31 @@
+name: Glyphin Simulation 14 Semantic Baseline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "simulation14.trigger"
+      - "glyphin_simulation14.py"
+      - "glyphin_research_core.py"
+      - "glyphin_state_referee.py"
+      - "glyphin_compression.py"
+
+jobs:
+  simulation14-semantic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run Simulation 14 semantic baseline
+        run: python glyphin_simulation14.py --output glyphin_simulation14_result.json
+      - name: Upload Simulation 14 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation14-semantic-result
+          path: glyphin_simulation14_result.json
+          if-no-files-found: error
