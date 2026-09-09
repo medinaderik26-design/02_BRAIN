@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'glyphin_simulation21.py'
+      - 'glyphin_state_referee.py'
       - 'simulation21.trigger'
 jobs:
   benchmark:
