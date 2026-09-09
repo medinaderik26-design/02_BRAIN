@@ -20,6 +20,8 @@ class GlyphinExecutionEngineTests(unittest.TestCase):
         self.assertEqual(recalled["lineage"], ["root", "child", "grandchild"])
         report = engine.verify_reload(["grandchild"])
         self.assertTrue(report.reload_exact)
+        self.assertTrue(report.state_referee_exact)
+        self.assertEqual(report.state_referee_mismatches, [])
         self.assertEqual(report.state_count, 3)
         self.assertEqual(report.relationship_count, 2)
         self.assertEqual(
