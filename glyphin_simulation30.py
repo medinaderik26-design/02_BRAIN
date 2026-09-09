@@ -1,11 +1,4 @@
-"""Glyphin Simulation 30: deterministic query-to-anchor retrieval.
-
-This benchmark removes the explicit a/b/c state-ID fields used in Sim29.
-A query is represented as text containing state-name mentions. A deterministic
-lexical resolver maps those mentions to index anchors; the structural index
-then discovers the dependency closure. Semantic/NLP query understanding is
-intentionally excluded.
-"""
+"""Glyphin Simulation 30: deterministic query-to-anchor retrieval."""
 from __future__ import annotations
 import argparse, hashlib, json, statistics
 import tiktoken
@@ -15,7 +8,7 @@ from glyphin_simulation18 import encode_structural, decode_structural
 from glyphin_simulation20 import encode_columnar, decode_columnar
 from glyphin_state_referee import referee_memory
 from glyphin_research_core import GlyphinMemory
-VERSION="30.1"
+VERSION="30.2"
 SEEDS=(21092026,31092026,41092026,51092026,61092026); SIZES=(256,1024,2048); BATCH_SIZES=(1,4,16,64,256); TOKENIZER="cl100k_base"
 VARIANTS={"sim17-compact":(encode_compact,decode_compact),"structural-lineage":(encode_structural,decode_structural),"state-columnar":(encode_columnar,decode_columnar)}
 QUERY_TYPES=("direct_attribute","parent_lookup","child_lookup","multi_hop_traversal","relationship_exists","path_reconstruction","temporal_ordering","parameter_retrieval","cross_state_comparison","mixed_multi_hop")
@@ -107,7 +100,7 @@ def evaluate(mem,v,enc,dec,tok,q,i,index):
     if anchors is None: selected=rebuilt; answer_exact=False
     else:
         aa=anchors[0] if anchors else None
-        bb=anchors[1] if q in ("relationship_exists","path_reconstruction","cross_state_comparison") else None
+        bb=anchors[1] if q in ("relationship_exists","path_reconstruction","cross_state_comparison","temporal_ordering") else None
         cc=anchors[1] if q=="mixed_multi_hop" else anchors[2] if q=="temporal_ordering" else None
         selected=induced_memory(rebuilt,required); answer_exact=(query_spec(selected,q,aa,bb,cc)==query_spec(mem,q,a,b,c))
     full=token_count(tok,encoded)+token_count(tok,qtext); selected_tokens=(token_count(tok,enc(selected)) if q!="parameter_retrieval" else 0)+token_count(tok,qtext)
