@@ -10,11 +10,27 @@ from __future__ import annotations
 from glyphin_topology import DirectedTopology
 
 
-def encode_explicit_edges(topology: DirectedTopology) -> str:
-    """Encode every edge as an independent ``source->target`` statement."""
-    return ";".join(
-        f"{source}->{target}" for source, target in sorted(topology.edges)
+def _isolated_nodes(topology: DirectedTopology) -> list[str]:
+    """Return nodes with no incident edges in canonical order."""
+    return sorted(
+        node
+        for node in topology.nodes
+        if topology.in_degree(node) == 0 and topology.out_degree(node) == 0
     )
+
+
+def encode_explicit_edges(topology: DirectedTopology) -> str:
+    """Encode every edge plus every isolated node.
+
+    A bare identifier is a valid grammar statement and is required to preserve
+    isolated nodes. This makes the explicit representation an exact topology
+    baseline rather than an edge-only approximation.
+    """
+    statements = [
+        f"{source}->{target}" for source, target in sorted(topology.edges)
+    ]
+    statements.extend(_isolated_nodes(topology))
+    return ";".join(statements)
 
 
 def encode_chains_and_edges(topology: DirectedTopology) -> str:
@@ -23,6 +39,7 @@ def encode_chains_and_edges(topology: DirectedTopology) -> str:
     A chain is extended only through a node with exactly one predecessor and
     one successor. Branching, merging, and cyclic structures are emitted as
     individual edges so this baseline never silently changes topology.
+    Isolated nodes are emitted as bare identifiers.
     """
     visited: set[tuple[str, str]] = set()
     statements: list[str] = []
@@ -51,6 +68,7 @@ def encode_chains_and_edges(topology: DirectedTopology) -> str:
         if (source, target) not in visited:
             statements.append("->".join(extend(source, target)))
 
+    statements.extend(_isolated_nodes(topology))
     return ";".join(statements)
 
 
