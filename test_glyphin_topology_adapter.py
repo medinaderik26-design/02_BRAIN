@@ -57,9 +57,7 @@ class TopologyAdapterTests(unittest.TestCase):
             nodes=["root", "a", "b", "x"],
         )
         memory, report = topology_to_memory(topology, strict=False)
-        self.assertIn(("x", "b"), report.unsupported_edges)
-        self.assertIn(("root", "a"), report.unsupported_edges)
-        self.assertIn(("a", "b"), report.unsupported_edges)
+        self.assertEqual(report.unsupported_edges, [("a", "b"), ("x", "b")])
         self.assertEqual(memory.states["a"].parent, "root")
         self.assertEqual(memory.states["b"].parent, None)
 
