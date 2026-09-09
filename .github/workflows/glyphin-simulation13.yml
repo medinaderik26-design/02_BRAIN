@@ -13,6 +13,9 @@ on:
         required: true
         default: "4 8 12 16 20 24 28"
         type: string
+  push:
+    paths:
+      - "simulation13.trigger"
 
 jobs:
   simulation13-scaling:
@@ -27,8 +30,8 @@ jobs:
           python-version: "3.12"
       - name: Run Simulation 13 scaling benchmark
         env:
-          SIZES: ${{ inputs.sizes }}
-          REPLICATES: ${{ inputs.replicates }}
+          SIZES: "4 8 12 16 20 24 28"
+          REPLICATES: "10"
         run: >-
           python glyphin_simulation13.py
           --sizes ${SIZES}
