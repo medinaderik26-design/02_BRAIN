@@ -1,0 +1,22 @@
+name: Glyphin Research Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  research-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run canonical Glyphin test suite
+        run: python run_glyphin_tests.py
+      - name: Run research smoke test
+        run: python run_glyphin_research.py
