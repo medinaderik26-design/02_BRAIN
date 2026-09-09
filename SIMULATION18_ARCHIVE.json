@@ -1,0 +1,29 @@
+{
+  "benchmark_version": "18.0",
+  "run_id": 34400465090,
+  "run_number": 3,
+  "head_sha": "19a0b8a1b68ac01a0ebe19418bac6e22d1ef2506",
+  "source_file": "glyphin_simulation18.py",
+  "source_blob_sha": "121f92ca5fe59696ea0c63f67fc485e604f4e090",
+  "workflow": ".github/workflows/glyphin-simulation18.yml",
+  "artifact_id": 10123220131,
+  "artifact_digest": "sha256:675063720caddb262059df2b43a5e3fa2906dc0188aa754be180aa3f094b16c5",
+  "artifact_expires_at": "2026-12-08T20:20:43Z",
+  "data_sha256": "d71ee7481ea106b1fa46fc2cd1c51c6acb5945aa4c92d2a8154c1ae94db828c4",
+  "tokenizer": "cl100k_base",
+  "sizes": [4, 8, 16, 32, 64, 128, 256],
+  "variants": ["sim17-compact", "structural-lineage"],
+  "total_cases": 14,
+  "exact_cases": 14,
+  "exact_rate_pct": 100.0,
+  "structural_lineage_token_reduction_pct": {
+    "4": 57.0957095709571,
+    "8": 56.970740103270224,
+    "16": 56.90413368513633,
+    "32": 56.08888888888889,
+    "64": 55.587776042828466,
+    "128": 55.31724754244861,
+    "256": 55.163164953062136
+  },
+  "interpretation": "Structural lineage encoding improved exact semantic token reduction over the Sim17 compact grammar on every tested size. It reached 55.16% token reduction at 256 states versus 42.00% for the Sim17 compact baseline at the same size. All 14 cases were exact under the independent state referee. This is evidence for structural compression on the tested fixture family, not a global optimum, not an 80% result, and not a claim of universal superiority."
+}
