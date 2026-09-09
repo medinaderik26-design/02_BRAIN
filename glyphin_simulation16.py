@@ -1,4 +1,4 @@
-"""Glyphin Simulation 16 — semantic compression scaling with real tokens."""
+"""Glyphin Simulation 16.2 — semantic compression scaling with real tokens."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +14,7 @@ from glyphin_compression import measure
 from glyphin_research_core import GlyphinMemory
 from glyphin_state_referee import referee_memory
 
-VERSION = "16.1"
+VERSION = "16.2"
 SEED = 16092026
 SIZES = (4, 8, 16, 32, 64, 128, 256)
 NULL = ""
@@ -103,13 +103,14 @@ def build_memory(n: int) -> GlyphinMemory:
     base = datetime(2026, 1, 1, tzinfo=timezone.utc)
     memory.add_state("root", level=0, cohesion=.90, parent=None, frequency=4,
                      resonance=.80, sigma="seed", created_at=base.isoformat())
+    names = {0: "root"}
     for i in range(1, n):
-        parent = "root" if i < 3 else f"s{i // 2}"
-        # Periodic adversarial values force the frozen escaping grammar to be exercised.
         if i % 17 == 0:
             name, sigma = f"s{i}|x", f"sig,{i};\\x"
         else:
             name, sigma = f"s{i}", f"sigma-{i % 5}"
+        names[i] = name
+        parent = names[0] if i < 3 else names[(i - 1) // 2]
         memory.add_state(name, level=i, cohesion=round(.9 / (1 + i * .01), 8),
                          parent=parent, frequency=(i % 7) + 1,
                          resonance=round((i % 11) / 10, 8), sigma=sigma,
@@ -132,19 +133,12 @@ def run_case(n: int, tokenizer) -> dict:
     encoded_tokens = len(tokenizer.encode(encoded, disallowed_special=()))
     token_reduction = (source_tokens - encoded_tokens) / source_tokens * 100 if source_tokens else 0.0
     return {
-        "states": n,
-        "source_chars": metrics.source_chars,
-        "encoded_chars": metrics.encoded_chars,
-        "char_reduction_pct": metrics.char_reduction_pct,
-        "source_words": metrics.source_words,
-        "encoded_words": metrics.encoded_words,
-        "word_reduction_pct": metrics.word_reduction_pct,
-        "source_tokens": source_tokens,
-        "encoded_tokens": encoded_tokens,
-        "token_reduction_pct": token_reduction,
-        "exact": verdict.exact,
-        "field_mismatches": verdict.field_mismatches,
-        "parameter_mismatches": verdict.parameter_mismatches,
+        "states": n, "source_chars": metrics.source_chars, "encoded_chars": metrics.encoded_chars,
+        "char_reduction_pct": metrics.char_reduction_pct, "source_words": metrics.source_words,
+        "encoded_words": metrics.encoded_words, "word_reduction_pct": metrics.word_reduction_pct,
+        "source_tokens": source_tokens, "encoded_tokens": encoded_tokens,
+        "token_reduction_pct": token_reduction, "exact": verdict.exact,
+        "field_mismatches": verdict.field_mismatches, "parameter_mismatches": verdict.parameter_mismatches,
     }
 
 
@@ -156,21 +150,16 @@ def main() -> int:
     tokenizer = tiktoken.get_encoding(TOKENIZER_NAME)
     cases = [run_case(n, tokenizer) for n in args.sizes]
     reductions = [c["token_reduction_pct"] for c in cases]
-    char_reductions = [c["char_reduction_pct"] for c in cases]
-    result = {
-        "benchmark_version": VERSION,
-        "seed": SEED,
-        "tokenizer": TOKENIZER_NAME,
-        "sizes": args.sizes,
-        "total_cases": len(cases),
-        "exact_cases": sum(c["exact"] for c in cases),
-        "exact_rate_pct": 100.0 * sum(c["exact"] for c in cases) / len(cases) if cases else 0.0,
-        "mean_char_reduction_pct": statistics.mean(char_reductions) if cases else 0.0,
-        "median_char_reduction_pct": statistics.median(char_reductions) if cases else 0.0,
-        "mean_token_reduction_pct": statistics.mean(reductions) if cases else 0.0,
-        "median_token_reduction_pct": statistics.median(reductions) if cases else 0.0,
-        "cases": cases,
-    }
+    chars = [c["char_reduction_pct"] for c in cases]
+    result = {"benchmark_version": VERSION, "seed": SEED, "tokenizer": TOKENIZER_NAME,
+              "sizes": args.sizes, "total_cases": len(cases),
+              "exact_cases": sum(c["exact"] for c in cases),
+              "exact_rate_pct": 100.0 * sum(c["exact"] for c in cases) / len(cases) if cases else 0.0,
+              "mean_char_reduction_pct": statistics.mean(chars) if cases else 0.0,
+              "median_char_reduction_pct": statistics.median(chars) if cases else 0.0,
+              "mean_token_reduction_pct": statistics.mean(reductions) if cases else 0.0,
+              "median_token_reduction_pct": statistics.median(reductions) if cases else 0.0,
+              "cases": cases}
     raw = json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
     result["data_sha256"] = hashlib.sha256(raw).hexdigest()
     Path(args.output).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
