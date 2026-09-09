@@ -1,0 +1,45 @@
+{
+  "benchmark": "Glyphin Simulation 12",
+  "benchmark_version": "12.0",
+  "status": "VERIFIED_RUN",
+  "repository": "medinaderik26-design/02_BRAIN",
+  "run_id": 34385606697,
+  "job_id": 1029595907,
+  "head_commit": "ca2cf843cdafff92f32e9cb975c149448c66b229",
+  "artifact_id": 10117576037,
+  "artifact_name": "glyphin-simulation12-full-result",
+  "artifact_digest": "sha256:ae17e6c92b2c029c20f9479ac87211fae43bd7609eb67551fd4da14c9848e75d",
+  "artifact_expires": "2026-12-08",
+  "source_sha256": "0bfb71d08ebb18b75ea1bc86d097ec13aa594358c89fcbf4c31174ef7d011a19",
+  "data_sha256": "6c9004a38e92aeee2e6f6be964037b9b0691994ab996fbd7d6e20c237fb62d75",
+  "cases": {
+    "random_dag": 1000,
+    "random_cyclic": 1000,
+    "adversarial": 10,
+    "total": 2010
+  },
+  "results": {
+    "exact_cases": 2010,
+    "exact_rate_pct": 100.0,
+    "total_candidates_generated": 102781,
+    "total_inexact_candidates": 13547,
+    "total_parse_failures": 0,
+    "mean_char_reduction_pct_exact": 6.6914671223395885,
+    "median_char_reduction_pct_exact": 5.333333333333334,
+    "min_shortest_chars": 9,
+    "max_elapsed_ms": 466.41930099997353
+  },
+  "interpretation": {
+    "supported": [
+      "The frozen bounded Glyphin search stack exactly reconstructed every tested topology in Simulation 12.",
+      "The benchmark produced zero parser failures across 2010 cases.",
+      "Character reduction was measured, not inferred; the exact-case mean was 6.6914671223395885 percent."
+    ],
+    "not_supported": [
+      "Global optimality",
+      "Universal 80 percent compression",
+      "Semantic equivalence beyond the topology representation",
+      "Consciousness or persistence of model state"
+    ]
+  }
+}
