@@ -34,16 +34,14 @@ def build_memory(n: int, seed: int) -> GlyphinMemory:
     names = [f"{entropy_string(rng, 13)}-{i:04x}" for i in range(n)]
     base = datetime(2024, 1, 3, 9, 17, 11, 123457, tzinfo=timezone(timedelta(hours=-5)))
     for i, name in enumerate(names):
-        parent = None
-        if i:
-            parent = names[rng.randrange(i)]
+        parent = None if i == 0 else names[rng.randrange(i)]
         mem.add_state(
             name=name,
-            level=(rng.randrange(-37, 113) + rng.random()),
-            cohesion=(rng.random() * 1.999983 - 0.999991),
+            level=rng.randrange(-37, 113) + rng.random(),
+            cohesion=rng.random() * 1.999983 - 0.999991,
             parent=parent,
             frequency=rng.randrange(1, 100003),
-            resonance=(rng.random() * 200.0 - 100.0),
+            resonance=rng.random(),
             sigma=entropy_string(rng, 23),
             created_at=base + timedelta(microseconds=rng.randrange(0, 10_000_000)),
         )
@@ -103,7 +101,7 @@ def main() -> None:
         }
     out = {
         "simulation": 21,
-        "benchmark_version": "21.1",
+        "benchmark_version": "21.2",
         "purpose": "Adversarial high-entropy stress test of exact Glyphin memory encodings.",
         "seed": SEED,
         "sizes": SIZES,
