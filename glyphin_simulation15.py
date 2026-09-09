@@ -1,8 +1,4 @@
-"""Glyphin Simulation 15 — compact semantic symbolic encoding.
-
-Goal: test whether complete research-core state survives a compact,
-deterministic grammar without carrying JSON scaffolding.
-"""
+"""Glyphin Simulation 15 — compact semantic symbolic encoding."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +11,7 @@ from glyphin_compression import measure
 from glyphin_research_core import GlyphinMemory
 from glyphin_state_referee import referee_memory
 
-VERSION = "15.2"
+VERSION = "15.3"
 NULL = ""
 ESCAPE = "\\"
 
@@ -29,17 +25,17 @@ def esc(value: str) -> str:
     return "".join(out)
 
 
-def split_escaped(text: str, delimiter: str) -> list[str]:
-    """Split one grammar layer while preserving escapes for nested layers."""
+def split_escaped(text: str, delimiter: str, preserve_escapes: bool = False) -> list[str]:
+    """Split one grammar layer; optionally retain escapes for a nested layer."""
     parts: list[str] = []
     current: list[str] = []
     escaped = False
     for char in text:
         if escaped:
-            if char == delimiter or char == ESCAPE:
-                current.append(char)
-            else:
+            if preserve_escapes:
                 current.extend((ESCAPE, char))
+            else:
+                current.append(char)
             escaped = False
         elif char == ESCAPE:
             escaped = True
@@ -68,7 +64,7 @@ def encode_semantic(memory: GlyphinMemory) -> str:
 
 
 def reconstruct_semantic(encoded: str) -> GlyphinMemory:
-    records = split_escaped(encoded, ";")
+    records = split_escaped(encoded, ";", preserve_escapes=True)
     if not records or not records[0].startswith("P"):
         raise ValueError("missing parameter record")
     params = records[0][1:].split(",")
@@ -79,7 +75,7 @@ def reconstruct_semantic(encoded: str) -> GlyphinMemory:
     for record in records[1:]:
         if not record.startswith("S"):
             raise ValueError(f"unknown record: {record[:10]!r}")
-        fields = split_escaped(record[1:], "|")
+        fields = split_escaped(record[1:], "|", preserve_escapes=False)
         if len(fields) != 8:
             raise ValueError("state record must contain eight fields")
         parent = None if fields[3] == NULL else fields[3]
