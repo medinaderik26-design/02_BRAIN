@@ -1,0 +1,27 @@
+name: Glyphin Simulation 12 Full Benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "simulation12_full.trigger"
+
+jobs:
+  simulation12-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run full Simulation 12 benchmark
+        run: python glyphin_simulation12.py --dag-count 1000 --cyclic-count 1000 --output glyphin_simulation12_result.json
+      - name: Upload Simulation 12 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation12-full-result
+          path: glyphin_simulation12_result.json
+          if-no-files-found: error
