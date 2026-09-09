@@ -1,0 +1,24 @@
+name: Glyphin Simulation 21 Adversarial State Entropy
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'glyphin_simulation21.py'
+      - 'simulation21.trigger'
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tokenizer
+        run: pip install 'tiktoken==0.11.0'
+      - name: Run Simulation 21
+        run: python glyphin_simulation21.py --output glyphin_simulation21_result.json
+      - name: Upload Simulation 21 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation21-adversarial-entropy-result
+          path: glyphin_simulation21_result.json
