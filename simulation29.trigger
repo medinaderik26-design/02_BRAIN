@@ -1,1 +1,1 @@
-Simulation 29.1 trigger: fix selective query evaluation so omitted anchors remain omitted
+Simulation 29.2 trigger: branch query dependencies before accessing omitted anchors
