@@ -1,18 +1,12 @@
-"""Run a small, reproducible Glyphin research trajectory.
-
-The harness emits evidence rather than interpretation: operation trace,
-state/edge counts, reload fidelity, topology adaptation, encoder output,
-independent reconstruction/referee result, and compression metrics.
-"""
+"""Run a small, reproducible Glyphin research trajectory."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from glyphin_compression import measure_compression
-from glyphin_encoder import encode
+from glyphin_candidate_search import search
+from glyphin_compression import measure
 from glyphin_engine import GlyphinExecutionEngine
-from glyphin_referee import referee
 from glyphin_topology_adapter import memory_to_topology
 
 
@@ -34,14 +28,22 @@ def build_evidence() -> dict[str, object]:
     report = engine.verify_reload(["grandchild"])
     topology, adaptation = memory_to_topology(engine.memory)
 
-    encoded = encode(topology, strategy="chains")
-    referee_result = referee(topology, encoded).to_dict()
-    compression = measure_compression(
-        source=engine.memory.to_json(), encoded=encoded
-    ).to_dict()
+    result = search(topology)
+    baseline = next(
+        candidate for candidate in result.exact_candidates
+        if candidate.encoding == result.exact_candidates[-1].encoding
+    ) if result.exact_candidates else None
+    shortest = result.shortest_exact
+    baseline_encoding = next(
+        candidate.encoding for candidate in result.exact_candidates
+        if candidate.encoding == ";".join(
+            f"{source}->{target}" for source, target in sorted(topology.edges)
+        )
+    ) if result.exact_candidates else ""
+    compression = measure(source=baseline_encoding, encoded=shortest.encoding) if shortest else None
 
     return {
-        "schema": "glyphin-research-run-3",
+        "schema": "glyphin-research-run-4",
         "operations": [
             {"operation": event.operation, "arguments": event.arguments}
             for event in report.events
@@ -49,14 +51,21 @@ def build_evidence() -> dict[str, object]:
         "execution": report.to_dict(),
         "recall": recalled,
         "topology": topology.canonical(),
-        "encoder": {"strategy": "chains", "encoded": encoded},
         "adaptation": {
             "lossless": adaptation.lossless,
             "unsupported_edges": adaptation.unsupported_edges,
             "lost_state_fields": adaptation.lost_state_fields,
         },
-        "symbolic_referee": referee_result,
-        "compression": compression,
+        "candidate_search": {
+            "candidates_generated": result.candidates_generated,
+            "candidates_evaluated": result.candidates_evaluated,
+            "exact_candidates": [candidate.encoding for candidate in result.exact_candidates],
+            "shortest_exact": shortest.encoding if shortest else None,
+            "shortest_chars": shortest.chars if shortest else None,
+            "baseline_chars": len(baseline_encoding),
+            "compression_vs_explicit_baseline": compression.__dict__ if compression else None,
+            "note": "bounded candidate search; not exhaustive or globally optimal",
+        },
     }
 
 
@@ -69,10 +78,9 @@ def main() -> None:
         "state_count": evidence["execution"]["state_count"],
         "relationship_count": evidence["execution"]["relationship_count"],
         "reload_exact": evidence["execution"]["reload_exact"],
-        "encoder_strategy": evidence["encoder"]["strategy"],
-        "encoded": evidence["encoder"]["encoded"],
-        "symbolic_exact": evidence["symbolic_referee"]["exact_match"],
-        "compression": evidence["compression"],
+        "candidates_generated": evidence["candidate_search"]["candidates_generated"],
+        "exact_candidates": len(evidence["candidate_search"]["exact_candidates"]),
+        "shortest_chars": evidence["candidate_search"]["shortest_chars"],
     }, sort_keys=True))
 
 
