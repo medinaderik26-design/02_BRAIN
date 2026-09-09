@@ -32,6 +32,8 @@ class CandidateResult:
 class SearchResult:
     candidates_generated: int
     candidates_evaluated: int
+    parse_failures: int
+    inexact_candidates: int
     exact_candidates: tuple[CandidateResult, ...]
     shortest_exact: CandidateResult | None
 
@@ -105,12 +107,16 @@ def generate_candidates(topology: DirectedTopology) -> list[str]:
     for width in (2, 3):
         for combo in combinations(chains, width):
             covered_sets = [_edges_from_chain(chain) for chain in combo]
-            if any(covered_sets[i] & covered_sets[j] for i in range(width) for j in range(i + 1, width)):
+            if any(
+                covered_sets[i] & covered_sets[j]
+                for i in range(width)
+                for j in range(i + 1, width)
+            ):
                 continue
             candidates.add(_compose_chains(topology, combo))
 
-    # Keep the finite search explicit: an individual edge candidate is useful
-    # for negative/referee cases but cannot encode unrelated nodes by itself.
+    # Individual edge candidates are useful negative/referee cases but cannot
+    # encode unrelated nodes by themselves.
     candidates.update(edges)
 
     return sorted(candidates)
@@ -151,6 +157,8 @@ def search(topology: DirectedTopology) -> SearchResult:
     return SearchResult(
         candidates_generated=len(candidates),
         candidates_evaluated=len(evaluated),
+        parse_failures=sum(not item.parse_ok for item in evaluated),
+        inexact_candidates=sum(item.parse_ok and not item.exact for item in evaluated),
         exact_candidates=exact,
         shortest_exact=exact[0] if exact else None,
     )
