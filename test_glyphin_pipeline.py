@@ -17,7 +17,9 @@ def _memory() -> GlyphinMemory:
 def test_pipeline_preserves_state_and_topology() -> None:
     report = analyze(_memory())
     assert report.persistence_referee.exact
-    assert report.adaptation.lossless
+    # Memory -> topology is intentionally lossy for GlyphState attributes,
+    # but the resulting topology encoding must still reconstruct exactly.
+    assert not report.adaptation.lossless
     assert report.topology_referee.parse_ok
     assert report.topology_referee.exact_match
     assert report.candidate_search.exact_candidates
@@ -31,8 +33,7 @@ def test_pipeline_does_not_claim_token_measurement() -> None:
 
 
 def test_pipeline_reports_loss_at_memory_to_topology_boundary() -> None:
-    memory = _memory()
-    report = analyze(memory)
+    report = analyze(_memory())
     assert "cohesion" in report.adaptation.lost_state_fields
     assert "resonance" in report.adaptation.lost_state_fields
     assert "frequency" in report.adaptation.lost_state_fields
