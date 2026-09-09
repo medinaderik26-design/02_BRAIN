@@ -19,13 +19,13 @@ The runtime makes no model-provider calls and does not claim token savings.
 
 `glyphin_topology.py` and `glyphin_topology_adapter.py` provide a separate graph representation. `GlyphinMemory` is single-parent and state-rich; `DirectedTopology` is a general directed graph. The adapter reports unsupported fan-in, self-loops, and cycles rather than silently converting them.
 
-`glyphin_roundtrip.py` and `glyphin_referee.py` are structural verification layers. They can establish graph/topology fidelity; they do **not** establish full GlyphState dynamic fidelity unless the relevant state variables are explicitly tested.
+`glyphin_roundtrip.py` and `glyphin_referee.py` are structural verification layers. They can establish graph/topology fidelity. `glyphin_state_referee.py` separately checks GlyphState fields and lineage, so a topology match is not incorrectly treated as full state fidelity.
 
 ## Encoding and reconstruction
 
 `glyphin_encoder.py` provides transparent deterministic encoders. Exact topology encoding includes isolated nodes as bare identifiers; this is required for true node-set fidelity.
 
-`glyphin_candidate_search.py` evaluates a finite, topology-derived candidate set using the independent reconstruction/referee layer. It is explicitly **bounded**, not exhaustive, global, or optimal.
+`glyphin_candidate_search.py` evaluates a finite, topology-derived candidate set using the independent reconstruction/referee layer. It is explicitly **bounded**, not exhaustive, global, or optimal, and now records parse-failure and inexact-candidate counts.
 
 `glyphin_benchmark.py` generates deterministic random DAGs, cyclic graphs, and adversarial structures for generalization testing. It records exact-referee outcomes and character/word compression. Token counts remain `NOT_MEASURED` unless a tokenizer is supplied.
 
