@@ -1,8 +1,8 @@
 """Run a small, reproducible Glyphin research trajectory.
 
-The harness intentionally emits evidence rather than interpretation: operation
-trace, state/edge counts, canonical hash, reload fidelity, lineage, and an
-independent topology referee result.
+The harness emits evidence rather than interpretation: operation trace,
+state/edge counts, canonical hash, reload fidelity, lineage, an explicit
+symbolic candidate, independent referee result, and compression metrics.
 """
 
 from __future__ import annotations
@@ -10,9 +10,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from glyphin_compression import measure_compression
 from glyphin_engine import GlyphinExecutionEngine
-from glyphin_topology_adapter import memory_to_topology
 from glyphin_referee import referee
+from glyphin_topology_adapter import memory_to_topology
 
 
 OPERATIONS = [
@@ -25,6 +26,8 @@ OPERATIONS = [
     {"operation": "decay", "arguments": {"delta": 2.0}},
 ]
 
+SYMBOLIC = "root->child->grandchild"
+
 
 def build_evidence() -> dict[str, object]:
     engine = GlyphinExecutionEngine()
@@ -32,34 +35,28 @@ def build_evidence() -> dict[str, object]:
     recalled = engine.recall("grandchild")
     report = engine.verify_reload(["grandchild"])
     topology, adaptation = memory_to_topology(engine.memory)
-
-    # Referee requires a symbolic encoding, so construct one directly from
-    # the topology for this smoke run. This validates the referee pipeline,
-    # not compression optimality.
-    encoded = ";".join(
-        f"{parent}->{child}" for parent, child in sorted(topology.edges)
-    )
-    referee_result = referee(topology, encoded)
+    referee_result = referee(topology, SYMBOLIC).to_dict()
+    compression = measure_compression(
+        source=engine.memory.to_json(), encoded=SYMBOLIC
+    ).to_dict()
 
     return {
-        "schema": "glyphin-research-run-1",
+        "schema": "glyphin-research-run-2",
         "operations": [
             {"operation": event.operation, "arguments": event.arguments}
             for event in report.events
         ],
         "execution": report.to_dict(),
         "recall": recalled,
-        "topology": {
-            "nodes": sorted(topology.nodes),
-            "edges": sorted(topology.edges),
-        },
-        "encoded_topology": encoded,
+        "topology": topology.canonical(),
+        "encoded_topology": SYMBOLIC,
         "adaptation": {
             "lossless": adaptation.lossless,
             "unsupported_edges": adaptation.unsupported_edges,
             "lost_state_fields": adaptation.lost_state_fields,
         },
-        "referee": referee_result.to_dict(),
+        "symbolic_referee": referee_result,
+        "compression": compression,
     }
 
 
@@ -72,9 +69,8 @@ def main() -> None:
         "state_count": evidence["execution"]["state_count"],
         "relationship_count": evidence["execution"]["relationship_count"],
         "reload_exact": evidence["execution"]["reload_exact"],
-        "adaptation_lossless": evidence["adaptation"]["lossless"],
-        "referee_exact": evidence["referee"]["exact_match"],
-        "referee_parse_ok": evidence["referee"]["parse_ok"],
+        "symbolic_exact": evidence["symbolic_referee"]["exact_match"],
+        "compression": evidence["compression"],
     }, sort_keys=True))
 
 
