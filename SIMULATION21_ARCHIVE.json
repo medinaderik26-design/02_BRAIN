@@ -1,0 +1,46 @@
+{
+  "simulation": 21,
+  "benchmark_version": "21.4",
+  "status": "SUCCESS",
+  "purpose": "Adversarial high-entropy stress test of exact Glyphin memory encodings.",
+  "seed": 21092026,
+  "sizes": [4, 8, 16, 32, 64, 128, 256],
+  "tokenizer": "cl100k_base",
+  "workflow_run_id": 34406199384,
+  "workflow_run_number": 7,
+  "job_id": 102649649398,
+  "head_sha": "9a9e1829d5f084a7715ddd65599d67dc950d9e9d",
+  "source_blob_sha": "1292fa1bba321dd0d3510d8dbc1cd2a24d5d9677",
+  "artifact_id": 10125395350,
+  "artifact_digest": "sha256:0f1ba44a71ec9ad45cc15828bbd6f19d8a54f9cb90e1b7a725db67ad2b448a4f",
+  "artifact_sha256_verified": true,
+  "result_data_sha256": "f486071ddfeea25ccba43873e025947b94a2f53938bdc9fa49fcd20c11bd2fd9",
+  "exact_cases": 21,
+  "total_cases": 21,
+  "exact_rate_pct": 100.0,
+  "variants": {
+    "sim17-compact": {
+      "exact_cases": 7,
+      "total_cases": 7,
+      "mean_token_reduction_pct": 35.80410276,
+      "median_token_reduction_pct": 35.25713002470244
+    },
+    "structural-lineage": {
+      "exact_cases": 7,
+      "total_cases": 7,
+      "mean_token_reduction_pct": 52.52262545611894,
+      "median_token_reduction_pct": 52.67857142857143
+    },
+    "state-columnar": {
+      "exact_cases": 7,
+      "total_cases": 7,
+      "mean_token_reduction_pct": 53.612414070965905,
+      "median_token_reduction_pct": 53.88392857142856
+    }
+  },
+  "key_observation": "Under this deliberately high-entropy fixture family, both structural encodings retained exact state fidelity while state-columnar produced the highest mean token reduction (53.61%), structural-lineage produced 52.52%, and sim17-compact produced 35.80%.",
+  "interpretation": "The structural advantage survived the adversarial entropy benchmark, but the result is benchmark-specific evidence only. It is not evidence of a global optimum, universal superiority, or an 80% token reduction guarantee.",
+  "referee_note": "Children ordering is treated as a derived index and compared as a set; all other state fields and memory parameters remain exact comparison targets.",
+  "source_url": "https://github.com/medinaderik26-design/02_BRAIN/blob/9a9e1829d5f084a7715ddd65599d67dc950d9e9d/glyphin_simulation21.py",
+  "run_url": "https://github.com/medinaderik26-design/02_BRAIN/actions/runs/34406199384"
+}
