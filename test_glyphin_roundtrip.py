@@ -1,4 +1,6 @@
 """Tests for structural Glyphin round-trip verification."""
+from __future__ import annotations
+
 import unittest
 
 from glyphin_research_core import GlyphinMemory
@@ -43,7 +45,9 @@ class GlyphinRoundTripTests(unittest.TestCase):
         result = round_trip_topology(topology)
 
         self.assertFalse(result.structural_exact)
-        self.assertTrue(result.second_adaptation.unsupported_edges)
+        self.assertEqual(
+            set(result.first_adaptation.unsupported_edges), {("a", "x"), ("b", "x")}
+        )
         self.assertEqual(result.round_trip_edges, 0)
 
     def test_topology_cycle_is_not_claimed_exact(self):
