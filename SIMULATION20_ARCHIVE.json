@@ -1,0 +1,41 @@
+{
+  "simulation": 20,
+  "benchmark_version": "20.0",
+  "purpose": "Compare compact, structural-lineage, and state-columnar exact memory encodings under actual cl100k_base tokenization.",
+  "run_id": 34402928773,
+  "job_id": 102638932968,
+  "head_sha": "8e1f239fc8787c13f2e8357d553c1a95ca6c8bdf",
+  "artifact_id": 10124180039,
+  "artifact_digest": "sha256:1909e1e8c35773a3f0fb3a05ebab9a348d40ee8d13c96b8cf09c9d37f1ca4e55",
+  "result_data_sha256": "9755757cea6ef283b449bf152923b23027fbe1feab60dc4689a6ee5b3e10d21a",
+  "artifact_sha256_verified": true,
+  "status": "SUCCESS",
+  "seed": 20092026,
+  "sizes": [4, 8, 16, 32, 64, 128, 256],
+  "tokenizer": "cl100k_base",
+  "total_cases": 21,
+  "exact_cases": 21,
+  "exact_rate_pct": 100.0,
+  "variants": {
+    "sim17-compact": {
+      "mean_token_reduction_pct": 43.44184591393631,
+      "median_token_reduction_pct": 42.888888888888886,
+      "mean_char_reduction_pct": 66.49867218593842
+    },
+    "structural-lineage": {
+      "mean_token_reduction_pct": 56.161094398084536,
+      "median_token_reduction_pct": 56.08888888888889,
+      "mean_char_reduction_pct": 72.73749149886619
+    },
+    "state-columnar": {
+      "mean_token_reduction_pct": 58.96522390890652,
+      "median_token_reduction_pct": 58.93333333333334,
+      "mean_char_reduction_pct": 74.20148911147662
+    }
+  },
+  "interpretation": {
+    "state_columnar_vs_structural_lineage_mean_token_improvement_percentage_points": 2.804129510821987,
+    "finding": "State-columnar encoding produced the highest mean token and character reduction among the three tested variants while preserving exact state reconstruction on all 21 cases.",
+    "scope": "Evidence is limited to this benchmark fixture family, sizes, seed, grammar, implementation, and cl100k_base tokenizer. It does not establish a global optimum, universal superiority, or an 80% token-reduction result."
+  }
+}
