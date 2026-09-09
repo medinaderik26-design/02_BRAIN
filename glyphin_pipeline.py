@@ -13,12 +13,11 @@ from typing import Any
 from glyphin_candidate_search import SearchResult, search
 from glyphin_compression import CompressionMetrics, measure
 from glyphin_encoder import encode
-from glyphin_memory_referee import MemoryRefereeResult  # compatibility alias removed below
 from glyphin_reconstruction import reconstruct
+from glyphin_referee import RefereeResult, referee as referee_topology
 from glyphin_research_core import GlyphinMemory
 from glyphin_state_referee import StateRefereeResult, referee_memory
 from glyphin_topology_adapter import AdaptationReport, memory_to_topology
-from glyphin_referee import RefereeResult, referee as referee_topology
 
 
 @dataclass(frozen=True)
@@ -64,10 +63,10 @@ class GlyphinPipelineReport:
                 "parse_ok": topology.parse_ok,
                 "source_fingerprint": topology.source_fingerprint,
                 "candidate_fingerprint": topology.candidate_fingerprint,
-                "missing_nodes": list(topology.missing_nodes),
-                "extra_nodes": list(topology.extra_nodes),
-                "missing_edges": list(topology.missing_edges),
-                "extra_edges": list(topology.extra_edges),
+                "missing_nodes": [list(node) if isinstance(node, tuple) else node for node in topology.missing_nodes],
+                "extra_nodes": [list(node) if isinstance(node, tuple) else node for node in topology.extra_nodes],
+                "missing_edges": [list(edge) for edge in topology.missing_edges],
+                "extra_edges": [list(edge) for edge in topology.extra_edges],
             },
             "compression": {
                 "source_chars": compression.source_chars,
@@ -111,9 +110,12 @@ def analyze(memory: GlyphinMemory) -> GlyphinPipelineReport:
     compression = measure(baseline, encoded)
     candidates = search(topology)
 
-    # The explicit reconstruction variable is intentionally exercised here;
-    # the topology referee remains the authority for exactness.
-    assert reconstructed.canonical() == topology_result.candidate_canonical
+    # Exercise the actual parser output while leaving exactness authority with
+    # the independent referee. These are intentionally separate checks.
+    if reconstructed.canonical() != topology.canonical():
+        raise AssertionError("reconstruction changed topology outside referee report")
+    if not topology_result.parse_ok:
+        raise AssertionError("pipeline encoder produced an unparsable representation")
 
     return GlyphinPipelineReport(
         memory_state_count=len(memory.states),
