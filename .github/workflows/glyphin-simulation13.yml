@@ -1,0 +1,42 @@
+name: Glyphin Simulation 13 Scaling Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      replicates:
+        description: "Replicates per size/density/family"
+        required: true
+        default: "10"
+        type: string
+      sizes:
+        description: "Space-separated graph sizes"
+        required: true
+        default: "4 8 12 16 20 24 28"
+        type: string
+
+jobs:
+  simulation13-scaling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run Simulation 13 scaling benchmark
+        env:
+          SIZES: ${{ inputs.sizes }}
+          REPLICATES: ${{ inputs.replicates }}
+        run: >-
+          python glyphin_simulation13.py
+          --sizes ${SIZES}
+          --replicates ${REPLICATES}
+          --output glyphin_simulation13_result.json
+      - name: Upload Simulation 13 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation13-scaling-result
+          path: glyphin_simulation13_result.json
+          if-no-files-found: error
