@@ -43,7 +43,7 @@ class GlyphState:
 class GlyphinMemory:
     """Persistent-capable symbolic memory for Glyphin experiments."""
 
-    VERSION = "glyphin-research-core-0.2"
+    VERSION = "glyphin-research-core-0.3"
 
     def __init__(self, decay_lambda: float = 0.01, alpha: float = 0.25, beta: float = 0.25):
         if decay_lambda < 0 or alpha < 0 or beta < 0:
@@ -60,6 +60,8 @@ class GlyphinMemory:
             raise ValueError(f"state already exists: {name}")
         if parent is not None and parent not in self.states:
             raise KeyError(f"parent does not exist: {parent}")
+        if parent == name:
+            raise ValueError("a state cannot be its own parent")
         state = GlyphState(name=name, level=level, cohesion=cohesion, parent=parent,
                            frequency=frequency, resonance=resonance, sigma=sigma)
         self.states[name] = state
@@ -78,14 +80,28 @@ class GlyphinMemory:
             if state.parent is not None:
                 if state.parent not in self.states:
                     raise ValueError(f"state {name!r} references missing parent {state.parent!r}")
+                if state.parent == name:
+                    raise ValueError(f"state {name!r} cannot be its own parent")
                 self._add_child(state.parent, name)
 
     def link_state(self, parent: str, child: str) -> None:
+        """Create a single-parent lineage edge without allowing inconsistent children lists."""
         if parent not in self.states or child not in self.states:
             raise KeyError("both parent and child must exist")
+        if parent == child:
+            raise ValueError("a state cannot be its own parent")
+        existing = self.states[child].parent
+        if existing is not None and existing != parent:
+            raise ValueError(f"child {child!r} already has parent {existing!r}")
+        self.states[child].parent = parent
         self._add_child(parent, child)
-        if self.states[child].parent is None:
-            self.states[child].parent = parent
+        if parent in self.get_path(child):
+            # get_path would now detect the cycle; reject it before leaving the
+            # in-memory object in an invalid state.
+            self.states[child].parent = existing
+            if existing is None:
+                self.states[parent].children.remove(child)
+            raise ValueError(f"link would create a parent cycle: {parent!r} -> {child!r}")
 
     def decay(self, delta: float) -> None:
         if delta < 0:
@@ -158,6 +174,8 @@ class GlyphinMemory:
             raw = dict(states[name])
             raw["name"] = name
             memory.states[name] = GlyphState(**raw)
+        # Children are derived from parent pointers. This prevents stale or
+        # contradictory serialized child lists from becoming authoritative.
         memory._rebuild_children()
         return memory
 
