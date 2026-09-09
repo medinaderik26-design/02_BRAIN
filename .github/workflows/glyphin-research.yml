@@ -20,3 +20,5 @@ jobs:
         run: python run_glyphin_tests.py
       - name: Run research smoke test
         run: python run_glyphin_research.py
+      - name: Run Simulation 12 benchmark smoke test
+        run: python glyphin_simulation12.py --dag-count 10 --cyclic-count 10 --output /tmp/glyphin_simulation12_smoke.json
