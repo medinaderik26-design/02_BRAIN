@@ -2,7 +2,7 @@
 
 The recorder captures an operation trace and final memory. This module creates
 a fresh runtime, replays the trace, and compares the resulting GlyphinMemory
-to the recorded final state with the field-level memory referee.
+to the recorded final state with the canonical GlyphState referee.
 
 A successful result means the run record is internally reproducible. It does
 not establish scientific validity, semantic truth, or model consciousness.
@@ -13,16 +13,16 @@ from dataclasses import dataclass
 from typing import Any
 
 from glyphin_experiment import ExperimentRun
-from glyphin_memory_referee import MemoryRefereeResult, referee as referee_memory
 from glyphin_research_core import GlyphinMemory
 from glyphin_runtime import GlyphinRuntime
+from glyphin_state_referee import StateRefereeResult, referee_memory
 
 
 @dataclass(frozen=True)
 class ExperimentRefereeResult:
     replay_succeeded: bool
     replay_error: str | None
-    memory: MemoryRefereeResult | None
+    memory: StateRefereeResult | None
 
     @property
     def exact(self) -> bool:
@@ -38,11 +38,11 @@ class ExperimentRefereeResult:
             if memory is None
             else {
                 "exact": memory.exact,
-                "source_state_count": memory.source_state_count,
-                "candidate_state_count": memory.candidate_state_count,
+                "source_count": memory.source_count,
+                "candidate_count": memory.candidate_count,
                 "missing_states": list(memory.missing_states),
                 "extra_states": list(memory.extra_states),
-                "state_mismatches": list(memory.state_mismatches),
+                "field_mismatches": list(memory.field_mismatches),
                 "parameter_mismatches": list(memory.parameter_mismatches),
             },
         }
@@ -53,8 +53,6 @@ def referee_run(run: ExperimentRun) -> ExperimentRefereeResult:
     runtime = GlyphinRuntime()
     try:
         runtime.run(run.operations)
-        replay_succeeded = True
-        replay_error = None
     except Exception as exc:  # noqa: BLE001 - audit must record failure type/message
         return ExperimentRefereeResult(
             replay_succeeded=False,
@@ -65,8 +63,8 @@ def referee_run(run: ExperimentRun) -> ExperimentRefereeResult:
     recorded = GlyphinMemory.from_dict(run.final_memory)
     result = referee_memory(recorded, runtime.memory)
     return ExperimentRefereeResult(
-        replay_succeeded=replay_succeeded,
-        replay_error=replay_error,
+        replay_succeeded=True,
+        replay_error=None,
         memory=result,
     )
 
