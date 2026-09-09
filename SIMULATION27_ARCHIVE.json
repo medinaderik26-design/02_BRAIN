@@ -1,0 +1,31 @@
+{
+  "simulation": 27,
+  "benchmark_version": "27.0",
+  "purpose": "Downstream deterministic query utility after compression/reconstruction.",
+  "workflow_run_id": 34415179872,
+  "workflow_job_id": 102678366541,
+  "head_sha": "bed9f3153a8c715f23806680427cce981570b865",
+  "source_file": "glyphin_simulation27.py",
+  "source_blob_sha": "7e715e0f8c0e1ac5ff5d85a7e7b9a69168564046",
+  "workflow": ".github/workflows/glyphin-simulation27.yml",
+  "artifact_id": 10128798096,
+  "artifact_sha256": "ff95158a49cf43d55fe13a8b41708a510ce73b095893faf271e45e6ab0f163f8",
+  "result_data_sha256": "1110d3d2292677c066b87e389ccc6849314771b66aee5e36730bed321579a093",
+  "tokenizer": "cl100k_base",
+  "fixture_family": "Sim21 high-entropy memory",
+  "seeds": [21092026,31092026,41092026,51092026,61092026],
+  "sizes": [256,1024,2048],
+  "query_types": ["direct_attribute","parent_lookup","child_lookup","multi_hop_traversal","relationship_exists","path_reconstruction","temporal_ordering","parameter_retrieval","cross_state_comparison","mixed_multi_hop"],
+  "variants": ["sim17-compact","structural-lineage","state-columnar"],
+  "total_cases": 450,
+  "exact_state_cases": 450,
+  "exact_answer_cases": 450,
+  "utility_exact_rate_pct": 100.0,
+  "summary": {
+    "sim17-compact": {"mean_token_reduction_pct": 35.07619930404048,"median_token_reduction_pct": 35.07540228593895,"stdev_token_reduction_pct": 0.05180771869934302,"mean_tokens_saved": 54312.2},
+    "structural-lineage": {"mean_token_reduction_pct": 52.525691304167694,"median_token_reduction_pct": 52.70478269386841,"stdev_token_reduction_pct": 0.3106291358610986,"mean_tokens_saved": 81064.4},
+    "state-columnar": {"mean_token_reduction_pct": 53.85933668977211,"median_token_reduction_pct": 53.87875476350594,"stdev_token_reduction_pct": 0.151314721469674,"mean_tokens_saved": 83292.93333333333}
+  },
+  "verification": {"artifact_sha256_recomputed": true,"artifact_sha256_matches_github": true,"result_data_sha256_recomputed": true,"result_data_sha256_matches_embedded": true,"workflow_conclusion": "success"},
+  "interpretation": "All tested deterministic downstream queries returned exactly the same answers from reconstructed state as from original state for all three representations. State-columnar averaged 53.86% input-token reduction, structural-lineage 52.53%, and Sim17 compact 35.08% across this benchmark. This is representation-level deterministic utility evidence only; it does not establish LLM semantic equivalence, universal generalization, or optimality."
+}
