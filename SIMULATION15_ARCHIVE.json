@@ -1,0 +1,18 @@
+{
+  "benchmark_version": "15.3",
+  "workflow_run_id": 34396436370,
+  "workflow_run_number": 4,
+  "head_commit": "2922f0f411aab4225b3f4776ef346fc4c2b49e85",
+  "source_file": "glyphin_simulation15.py",
+  "source_blob_sha": "b43cabc04c06f7b69eb23b4f9c2bbdd6cade42e8",
+  "artifact_id": 10121681252,
+  "artifact_name": "glyphin-simulation15-semantic-result",
+  "artifact_digest": "sha256:7330b41ce0c37d66d8f57147d9c9467084a5d3a9afd3814f4edcbb696db82b6d",
+  "artifact_expires_at": "2026-12-08T19:40:13Z",
+  "result_data_sha256": "0624240753efb4df1cda48159d00c4f35ca53d827b1e133cc5acc04294a7f54f",
+  "total_cases": 4,
+  "exact_cases": 4,
+  "exact_rate_pct": 100.0,
+  "mean_char_reduction_pct": 70.33806262157229,
+  "interpretation": "Verified semantic roundtrip across chain, branch, mixed, and adversarial escaping fixtures. Exactness was established by the independent state referee. This is a deterministic semantic encoder baseline, not a global optimizer and not evidence of an 80% token reduction. Token counts were not measured in this run."
+}
