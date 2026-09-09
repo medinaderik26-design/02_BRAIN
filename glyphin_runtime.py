@@ -21,8 +21,14 @@ class GlyphinRuntime:
     def __init__(self, memory: Optional[GlyphinMemory] = None) -> None:
         self.memory = memory or GlyphinMemory()
 
-    def create(self, name: str, *, level: int = 0, cohesion: float = 0.0) -> dict:
-        state = self.memory.add_state(name, level=level, cohesion=cohesion)
+    def create(self, name: str, *, level: int = 0, cohesion: float = 0.0,
+               created_at: str | None = None) -> dict:
+        state = self.memory.add_state(
+            name,
+            level=level,
+            cohesion=cohesion,
+            created_at=created_at,
+        )
         return {"operation": "create", "state": state.name}
 
     def link(self, parent: str, child: str) -> dict:
@@ -63,8 +69,14 @@ class GlyphinRuntime:
         for operation in operations:
             name = operation.get("operation")
             if name == "create":
-                results.append(self.create(operation["name"], level=operation.get("level", 0),
-                                            cohesion=operation.get("cohesion", 0.0)))
+                results.append(
+                    self.create(
+                        operation["name"],
+                        level=operation.get("level", 0),
+                        cohesion=operation.get("cohesion", 0.0),
+                        created_at=operation.get("created_at"),
+                    )
+                )
             elif name == "link":
                 results.append(self.link(operation["parent"], operation["child"]))
             elif name == "reinforce":
