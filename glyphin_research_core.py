@@ -1,19 +1,7 @@
-"""Glyphin Research Core
+"""Glyphin Research Core.
 
-A small, dependency-free implementation of the formal Glyphin state model.
-This module is intentionally separate from the legacy Glyphin v1.7 runtime.
-It provides the missing experimentally testable primitives:
-
-- named glyph states
-- parent/child lineage
-- recurrence/frequency
-- cohesion and resonance
-- deterministic decay/update
-- lineage-aware recall
-- canonical JSON serialization
-
-This is an implementation artifact, not evidence that the underlying Glyphin
-hypothesis is validated. Validation belongs to the experiment/referee layer.
+The executable, dependency-free implementation of the formal Glyphin state
+model. Legacy ``glyphin.py`` remains separate and is not the research engine.
 """
 
 from __future__ import annotations
@@ -22,7 +10,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import json
 import math
-from typing import Dict, Iterable, List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -37,9 +26,7 @@ class GlyphState:
     frequency: int = 1
     resonance: float = 1.0
     sigma: str = "seed"
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -54,7 +41,9 @@ class GlyphState:
 
 
 class GlyphinMemory:
-    """Deterministic in-memory symbolic topology for experiments."""
+    """Persistent-capable symbolic memory for Glyphin experiments."""
+
+    VERSION = "glyphin-research-core-0.2"
 
     def __init__(self, decay_lambda: float = 0.01, alpha: float = 0.25, beta: float = 0.25):
         if decay_lambda < 0 or alpha < 0 or beta < 0:
@@ -64,45 +53,41 @@ class GlyphinMemory:
         self.beta = beta
         self.states: Dict[str, GlyphState] = {}
 
-    def add_state(
-        self,
-        name: str,
-        *,
-        level: int = 0,
-        cohesion: float = 0.0,
-        parent: Optional[str] = None,
-        frequency: int = 1,
-        resonance: float = 1.0,
-        sigma: str = "seed",
-    ) -> GlyphState:
+    def add_state(self, name: str, *, level: int = 0, cohesion: float = 0.0,
+                  parent: Optional[str] = None, frequency: int = 1,
+                  resonance: float = 1.0, sigma: str = "seed") -> GlyphState:
         if name in self.states:
             raise ValueError(f"state already exists: {name}")
         if parent is not None and parent not in self.states:
             raise KeyError(f"parent does not exist: {parent}")
-        state = GlyphState(
-            name=name,
-            level=level,
-            cohesion=cohesion,
-            parent=parent,
-            frequency=frequency,
-            resonance=resonance,
-            sigma=sigma,
-        )
+        state = GlyphState(name=name, level=level, cohesion=cohesion, parent=parent,
+                           frequency=frequency, resonance=resonance, sigma=sigma)
         self.states[name] = state
         if parent is not None:
-            self.states[parent].children.append(name)
+            self._add_child(parent, name)
         return state
+
+    def _add_child(self, parent: str, child: str) -> None:
+        if child not in self.states[parent].children:
+            self.states[parent].children.append(child)
+
+    def _rebuild_children(self) -> None:
+        for state in self.states.values():
+            state.children = []
+        for name, state in self.states.items():
+            if state.parent is not None:
+                if state.parent not in self.states:
+                    raise ValueError(f"state {name!r} references missing parent {state.parent!r}")
+                self._add_child(state.parent, name)
 
     def link_state(self, parent: str, child: str) -> None:
         if parent not in self.states or child not in self.states:
             raise KeyError("both parent and child must exist")
-        if child not in self.states[parent].children:
-            self.states[parent].children.append(child)
+        self._add_child(parent, child)
         if self.states[child].parent is None:
             self.states[child].parent = parent
 
     def decay(self, delta: float) -> None:
-        """Apply rho <- rho * exp(-lambda * delta) to every state."""
         if delta < 0:
             raise ValueError("delta must be non-negative")
         factor = math.exp(-self.decay_lambda * delta)
@@ -110,7 +95,6 @@ class GlyphinMemory:
             state.resonance = max(0.0, min(1.0, state.resonance * factor))
 
     def reinforce(self, name: str, kappa: float = 1.0) -> GlyphState:
-        """Apply the specified recurrence update to one state."""
         if name not in self.states:
             raise KeyError(name)
         if not 0 <= kappa <= 1:
@@ -123,7 +107,6 @@ class GlyphinMemory:
         return state
 
     def get_path(self, name: str) -> List[str]:
-        """Return root-to-state lineage using parent links."""
         if name not in self.states:
             raise KeyError(name)
         path: List[str] = []
@@ -139,56 +122,52 @@ class GlyphinMemory:
         return path
 
     def recall(self, name: str) -> Dict[str, object]:
-        """Return the symbolic state plus its lineage, not a similarity search."""
-        state = self.states[name]
-        return {
-            "target": name,
-            "state": asdict(state),
-            "lineage": self.get_path(name),
-        }
+        return {"target": name, "state": asdict(self.states[name]), "lineage": self.get_path(name)}
 
     def hyperstate(self, threshold: float = 0.8) -> List[str]:
-        return sorted(
-            name for name, state in self.states.items() if state.cohesion >= threshold
-        )
+        return sorted(name for name, state in self.states.items() if state.cohesion >= threshold)
 
     def to_dict(self) -> Dict[str, object]:
         return {
-            "version": "glyphin-research-core-0.1",
-            "parameters": {
-                "decay_lambda": self.decay_lambda,
-                "alpha": self.alpha,
-                "beta": self.beta,
-            },
-            "states": {
-                name: asdict(self.states[name]) for name in sorted(self.states)
-            },
+            "version": self.VERSION,
+            "parameters": {"decay_lambda": self.decay_lambda, "alpha": self.alpha, "beta": self.beta},
+            "states": {name: asdict(self.states[name]) for name in sorted(self.states)},
         }
 
     def to_json(self) -> str:
-        """Canonical serialization for reproducible artifact hashing."""
         return json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
+
+    def save(self, path: str | Path) -> Path:
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(self.to_json() + "\n", encoding="utf-8")
+        return target
 
     @classmethod
     def from_dict(cls, payload: Dict[str, object]) -> "GlyphinMemory":
         params = payload.get("parameters", {})
-        memory = cls(
-            decay_lambda=float(params.get("decay_lambda", 0.01)),
-            alpha=float(params.get("alpha", 0.25)),
-            beta=float(params.get("beta", 0.25)),
-        )
+        if not isinstance(params, dict):
+            raise ValueError("parameters must be an object")
+        memory = cls(decay_lambda=float(params.get("decay_lambda", 0.01)),
+                     alpha=float(params.get("alpha", 0.25)),
+                     beta=float(params.get("beta", 0.25)))
         states = payload.get("states", {})
         if not isinstance(states, dict):
             raise ValueError("states must be an object")
         for name in sorted(states):
             raw = dict(states[name])
-            raw.pop("children", None)
-            memory.states[name] = GlyphState(name=name, **raw)
+            raw["name"] = name
+            memory.states[name] = GlyphState(**raw)
+        memory._rebuild_children()
         return memory
 
     @classmethod
     def from_json(cls, text: str) -> "GlyphinMemory":
         return cls.from_dict(json.loads(text))
+
+    @classmethod
+    def load(cls, path: str | Path) -> "GlyphinMemory":
+        return cls.from_json(Path(path).read_text(encoding="utf-8"))
 
 
 __all__ = ["GlyphState", "GlyphinMemory"]
