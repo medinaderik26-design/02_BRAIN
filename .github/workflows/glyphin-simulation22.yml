@@ -1,0 +1,31 @@
+name: Glyphin Simulation 22 Cross-Tokenizer Robustness
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'glyphin_simulation22.py'
+      - 'glyphin_simulation21.py'
+      - 'glyphin_simulation20.py'
+      - 'glyphin_simulation18.py'
+      - 'glyphin_simulation17.py'
+      - 'glyphin_state_referee.py'
+      - 'simulation22.trigger'
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned tokenizer dependency
+        run: pip install 'tiktoken==0.11.0'
+      - name: Run Simulation 22
+        run: python glyphin_simulation22.py --output glyphin_simulation22_result.json
+      - name: Upload benchmark result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation22-result
+          path: glyphin_simulation22_result.json
