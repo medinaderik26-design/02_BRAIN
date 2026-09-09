@@ -1,0 +1,41 @@
+{
+  "simulation": 26,
+  "benchmark_version": "26.0",
+  "workflow_run": 34414291329,
+  "workflow_job": 102? ,
+  "head_sha": "02b066453cbf5e7b67f299662f6e77f2f89b32f2",
+  "artifact_id": 10128440764,
+  "artifact_sha256": "5ed31d587a6f4553ec92a7fa0c24e5c0e1c2989b6003a9b8263ae04f186b0098",
+  "result_data_sha256": "7e0dd8be17d0fd790e4eeb9e5c0f09b4fe3cae8464b70589be8639af3f1ddfda",
+  "verification": {
+    "artifact_sha256_recomputed": true,
+    "result_data_sha256_recomputed": true,
+    "exact_cases": 135,
+    "total_cases": 135
+  },
+  "summary": {
+    "sim17_compact": {
+      "cl100k_base_mean_pct": 35.08014193815773,
+      "o200k_base_mean_pct": 36.38063064973637,
+      "o200k_harmony_mean_pct": 36.38063064973637
+    },
+    "structural_lineage": {
+      "cl100k_base_mean_pct": 52.5307337452219,
+      "o200k_base_mean_pct": 53.49499227087499,
+      "o200k_harmony_mean_pct": 53.49499227087499
+    },
+    "state_columnar": {
+      "cl100k_base_mean_pct": 53.864706554886155,
+      "o200k_base_mean_pct": 54.85131759095078,
+      "o200k_harmony_mean_pct": 54.85131759095078
+    }
+  },
+  "paired_state_columnar_advantage_over_compact_pp": {
+    "mean_pp": 18.575312833052415,
+    "median_pp": 18.591070321047532,
+    "stdev_pp": 0.20317558264516802,
+    "min_pp": 18.279300269207596,
+    "max_pp": 18.978737746819093
+  },
+  "scope": "Benchmark-specific evidence only; no universal generalization, scaling, or optimality claim."
+}
