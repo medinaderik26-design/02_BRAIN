@@ -40,3 +40,20 @@ def test_search_does_not_claim_global_optimality() -> None:
     assert result.shortest_exact is not None
     assert result.candidates_generated >= result.candidates_evaluated
     assert result.candidates_generated == result.candidates_evaluated
+
+
+def test_search_finds_exact_representation_with_isolated_node() -> None:
+    topology = DirectedTopology.from_edges(
+        [("root", "a"), ("a", "b"), ("root", "c")], nodes=["isolated"]
+    )
+    result = search(topology)
+    assert result.shortest_exact is not None
+    assert result.shortest_exact.exact
+    assert "isolated" in result.shortest_exact.encoding
+
+
+def test_candidate_set_contains_chain_candidate() -> None:
+    topology = DirectedTopology.from_edges([("a", "b"), ("b", "c")])
+    candidates = generate_candidates(topology)
+    assert "a->b;b->c" in candidates
+    assert "a->b->c" in candidates
