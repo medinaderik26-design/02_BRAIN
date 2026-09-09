@@ -8,6 +8,7 @@ requiring a model provider or external database.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -49,13 +50,24 @@ class ExperimentRun:
 class GlyphinExperiment:
     """Execute and capture a complete Glyphin experiment run."""
 
-    VERSION = "glyphin-experiment-0.1"
+    VERSION = "glyphin-experiment-0.2"
 
     def __init__(self, runtime: GlyphinRuntime | None = None) -> None:
         self.runtime = runtime or GlyphinRuntime()
 
+    @staticmethod
+    def _freeze_operations(operations: Iterable[dict[str, Any]]) -> tuple[dict[str, Any], ...]:
+        """Make implicit creation timestamps explicit in the recorded trace."""
+        frozen: list[dict[str, Any]] = []
+        for operation in operations:
+            item = dict(operation)
+            if item.get("operation") == "create" and "created_at" not in item:
+                item["created_at"] = datetime.now(timezone.utc).isoformat()
+            frozen.append(item)
+        return tuple(frozen)
+
     def run(self, operations: Iterable[dict[str, Any]]) -> ExperimentRun:
-        frozen_ops = tuple(dict(op) for op in operations)
+        frozen_ops = self._freeze_operations(operations)
         results = tuple(self.runtime.run(frozen_ops))
         return ExperimentRun(
             version=self.VERSION,
