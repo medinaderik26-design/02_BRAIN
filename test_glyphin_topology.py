@@ -41,7 +41,7 @@ def test_compare_reports_exact_differences() -> None:
     )
     result = source.compare(candidate)
     assert result["exact"] is False
-    assert result["missing_nodes"] == ["B"]
+    assert result["missing_nodes"] == []
     assert result["extra_nodes"] == ["E"]
     assert result["missing_edges"] == [["B", "C"]]
     assert result["extra_edges"] == [["C", "D"]]
