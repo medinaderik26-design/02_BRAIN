@@ -1,1 +1,1 @@
-This marker intentionally triggers the frozen Simulation 13 scaling benchmark.
+This marker intentionally triggers the canonical Simulation 13.1 rerun after the median-definition fix.
