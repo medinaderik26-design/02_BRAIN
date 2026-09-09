@@ -43,10 +43,7 @@ class SymbolicParser:
                     break
                 raise ReconstructionError(f"invalid character at offset {pos}: {text[pos]!r}")
             value = m.group(1)
-            if value.isalnum() or "_" in value:
-                kind = "ID"
-            else:
-                kind = value
+            kind = "ID" if value[0].isalnum() or "_" in value else value
             tokens.append(Token(kind, value))
             pos = m.end()
         return tokens
@@ -96,7 +93,6 @@ class SymbolicParser:
             first = False
             item = self.take("ID").value
             graph.add_edge(parent, item)
-            # The bounded grammar permits a chain inside a fanout item.
             self._chain_from(graph, item)
             if self.peek() is None or self.peek().kind != ",":
                 break
@@ -110,7 +106,7 @@ def compare(source: DirectedTopology, encoded: str) -> Tuple[bool, dict]:
     """Reconstruct and return a machine-readable exact comparison."""
     candidate = reconstruct(encoded)
     report = source.compare(candidate)
-    return report["exact_match"], report
+    return bool(report["exact"]), report
 
 
 __all__ = ["Token", "ReconstructionError", "SymbolicParser", "reconstruct", "compare"]
