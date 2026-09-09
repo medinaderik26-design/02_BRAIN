@@ -1,0 +1,31 @@
+name: Glyphin Simulation 25 Cross-Seed Generalization
+
+on:
+  push:
+    paths:
+      - glyphin_simulation25.py
+      - glyphin_simulation21.py
+      - glyphin_simulation20.py
+      - glyphin_simulation18.py
+      - glyphin_simulation17.py
+      - glyphin_research_core.py
+      - glyphin_state_referee.py
+      - glyphin_compression.py
+      - simulation25.trigger
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'tiktoken==0.11.0'
+      - run: python glyphin_simulation25.py --output glyphin_simulation25_result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation25-result
+          path: glyphin_simulation25_result.json
