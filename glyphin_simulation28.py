@@ -1,4 +1,4 @@
-"""Glyphin Simulation 28.2 — query-conditioned retrieval benchmark."""
+"""Glyphin Simulation 28.3 — query-conditioned retrieval benchmark."""
 from __future__ import annotations
 import argparse, hashlib, json, statistics
 import tiktoken
@@ -9,7 +9,7 @@ from glyphin_simulation20 import encode_columnar, decode_columnar
 from glyphin_state_referee import referee_memory
 from glyphin_research_core import GlyphinMemory
 
-VERSION="28.2"; SEEDS=(21092026,31092026,41092026,51092026,61092026); SIZES=(256,1024,2048); TOKENIZER="cl100k_base"
+VERSION="28.3"; SEEDS=(21092026,31092026,41092026,51092026,61092026); SIZES=(256,1024,2048); TOKENIZER="cl100k_base"
 VARIANTS={"sim17-compact":(encode_compact,decode_compact),"structural-lineage":(encode_structural,decode_structural),"state-columnar":(encode_columnar,decode_columnar)}
 QUERY_TYPES=("direct_attribute","parent_lookup","child_lookup","multi_hop_traversal","relationship_exists","path_reconstruction","temporal_ordering","parameter_retrieval","cross_state_comparison","mixed_multi_hop")
 
@@ -22,11 +22,15 @@ def query_spec(memory,q,i):
     elif q=="parent_lookup": answer={"state":a,"parent":sa.parent}; required={a}|({sa.parent} if sa.parent else set())
     elif q=="child_lookup": answer={"state":a,"children":sorted(sa.children)}; required={a}|set(sa.children)
     elif q=="multi_hop_traversal": answer={"state":a,"path":memory.get_path(a)}; required=set(memory.get_path(a))
-    elif q=="relationship_exists": answer={"a":a,"b":b,"a_parent_is_b":sa.parent==b,"b_parent_is_a":sb.parent==a}
+    elif q=="relationship_exists":
+        answer={"a":a,"b":b,"a_parent_is_b":sa.parent==b,"b_parent_is_a":sb.parent==a}
+        required={a,b}|({sa.parent} if sa.parent else set())|({sb.parent} if sb.parent else set())
     elif q=="path_reconstruction": answer={"a":a,"b":b,"path_a":memory.get_path(a),"path_b":memory.get_path(b)}; required=set(memory.get_path(a))|set(memory.get_path(b))
     elif q=="temporal_ordering": answer={"states":[a,b,c],"chronological":[x[1] for x in sorted((s.created_at,s.name) for s in (sa,sb,sc))]}
-    elif q=="cross_state_comparison": answer={"a":a,"b":b,"level_delta":sa.level-sb.level,"cohesion_delta":sa.cohesion-sb.cohesion,"frequency_delta":sa.frequency-sb.frequency,"same_parent":sa.parent==sb.parent}; required={a,b}
-    elif q=="mixed_multi_hop": answer={"start":a,"start_parent":sa.parent,"start_path":memory.get_path(a),"parent_children":sorted(memory.states[sa.parent].children) if sa.parent else [],"compare_to":c,"same_parent":sa.parent==sc.parent}; required=set(memory.get_path(a))|({sa.parent} if sa.parent else set())|({*memory.states[sa.parent].children} if sa.parent else set())|{c}
+    elif q=="cross_state_comparison":
+        answer={"a":a,"b":b,"level_delta":sa.level-sb.level,"cohesion_delta":sa.cohesion-sb.cohesion,"frequency_delta":sa.frequency-sb.frequency,"same_parent":sa.parent==sb.parent}
+        required={a,b}|({sa.parent} if sa.parent else set())|({sb.parent} if sb.parent else set())
+    elif q=="mixed_multi_hop": answer={"start":a,"start_parent":sa.parent,"start_path":memory.get_path(a),"parent_children":sorted(memory.states[sa.parent].children) if sa.parent else [],"compare_to":c,"same_parent":sa.parent==sc.parent}; required=set(memory.get_path(a))|({sa.parent} if sa.parent else set())|({*memory.states[sa.parent].children} if sa.parent else set())|({sc.parent} if sc.parent else set())|{c}
     else: raise ValueError(q)
     return answer,required
 
