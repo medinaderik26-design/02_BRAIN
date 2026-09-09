@@ -12,7 +12,7 @@ from typing import Any
 
 from glyphin_candidate_search import SearchResult, search
 from glyphin_compression import CompressionMetrics, measure
-from glyphin_encoder import encode
+from glyphin_encoder import encode, encode_explicit_edges
 from glyphin_reconstruction import reconstruct
 from glyphin_referee import RefereeResult, referee as referee_topology
 from glyphin_research_core import GlyphinMemory
@@ -63,8 +63,8 @@ class GlyphinPipelineReport:
                 "parse_ok": topology.parse_ok,
                 "source_fingerprint": topology.source_fingerprint,
                 "candidate_fingerprint": topology.candidate_fingerprint,
-                "missing_nodes": [list(node) if isinstance(node, tuple) else node for node in topology.missing_nodes],
-                "extra_nodes": [list(node) if isinstance(node, tuple) else node for node in topology.extra_nodes],
+                "missing_nodes": list(topology.missing_nodes),
+                "extra_nodes": list(topology.extra_nodes),
                 "missing_edges": [list(edge) for edge in topology.missing_edges],
                 "extra_edges": [list(edge) for edge in topology.extra_edges],
             },
@@ -106,7 +106,7 @@ def analyze(memory: GlyphinMemory) -> GlyphinPipelineReport:
     encoded = encode(topology, strategy="chains")
     topology_result = referee_topology(topology, encoded)
     reconstructed = reconstruct(encoded)
-    baseline = encode(topology, strategy="explicit")
+    baseline = encode_explicit_edges(topology)
     compression = measure(baseline, encoded)
     candidates = search(topology)
 
