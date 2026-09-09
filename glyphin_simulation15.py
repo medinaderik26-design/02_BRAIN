@@ -1,11 +1,7 @@
 """Glyphin Simulation 15 — compact semantic symbolic encoding.
 
-Goal: test whether the complete research-core state survives a compact,
-deterministic grammar without carrying JSON scaffolding. Children are derived
-from parent pointers and therefore are not serialized as independent facts.
-
-This is a semantic encoder, not an optimizer. It makes no global-minimum or
-80%-reduction claim. Exactness is decided by the independent state referee.
+Goal: test whether complete research-core state survives a compact,
+deterministic grammar without carrying JSON scaffolding.
 """
 from __future__ import annotations
 
@@ -19,13 +15,12 @@ from glyphin_compression import measure
 from glyphin_research_core import GlyphinMemory
 from glyphin_state_referee import referee_memory
 
-VERSION = "15.1"
+VERSION = "15.2"
 NULL = ""
 ESCAPE = "\\"
 
 
 def esc(value: str) -> str:
-    """Escape grammar punctuation; empty string is reserved for a null parent."""
     out = []
     for char in str(value):
         if char in (ESCAPE, "|", ";", ","):
@@ -35,12 +30,16 @@ def esc(value: str) -> str:
 
 
 def split_escaped(text: str, delimiter: str) -> list[str]:
+    """Split one grammar layer while preserving escapes for nested layers."""
     parts: list[str] = []
     current: list[str] = []
     escaped = False
     for char in text:
         if escaped:
-            current.append(char)
+            if char == delimiter or char == ESCAPE:
+                current.append(char)
+            else:
+                current.extend((ESCAPE, char))
             escaped = False
         elif char == ESCAPE:
             escaped = True
@@ -56,22 +55,14 @@ def split_escaped(text: str, delimiter: str) -> list[str]:
 
 
 def encode_semantic(memory: GlyphinMemory) -> str:
-    """Encode parameters and every non-derived GlyphState field."""
     params = f"P{memory.decay_lambda!r},{memory.alpha!r},{memory.beta!r}"
     records = [params]
     for name in sorted(memory.states):
         state = memory.states[name]
         parent = "" if state.parent is None else state.parent
-        fields = [
-            state.name,
-            str(state.level),
-            repr(state.cohesion),
-            parent,
-            str(state.frequency),
-            repr(state.resonance),
-            state.sigma,
-            state.created_at,
-        ]
+        fields = [state.name, str(state.level), repr(state.cohesion), parent,
+                  str(state.frequency), repr(state.resonance), state.sigma,
+                  state.created_at]
         records.append("S" + "|".join(esc(field) for field in fields))
     return ";".join(records)
 
@@ -84,7 +75,6 @@ def reconstruct_semantic(encoded: str) -> GlyphinMemory:
     if len(params) != 3:
         raise ValueError("parameter record must contain three values")
     memory = GlyphinMemory(decay_lambda=float(params[0]), alpha=float(params[1]), beta=float(params[2]))
-
     rows: list[tuple[str, int, float, str | None, int, float, str, str]] = []
     for record in records[1:]:
         if not record.startswith("S"):
@@ -95,7 +85,6 @@ def reconstruct_semantic(encoded: str) -> GlyphinMemory:
         parent = None if fields[3] == NULL else fields[3]
         rows.append((fields[0], int(fields[1]), float(fields[2]), parent,
                      int(fields[4]), float(fields[5]), fields[6], fields[7]))
-
     remaining = {row[0]: row for row in rows}
     while remaining:
         progressed = False
