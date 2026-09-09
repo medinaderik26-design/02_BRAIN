@@ -1,1 +1,1 @@
-Simulation 29.0 trigger: index-discovered query-conditioned retrieval with explicit anchors and post-hoc closure validation
+Simulation 29.1 trigger: fix selective query evaluation so omitted anchors remain omitted
