@@ -1,7 +1,7 @@
 """High-level execution layer for repeatable Glyphin research runs.
 
 This layer is intentionally small: it orchestrates GlyphinMemory operations,
-records the operation trace, and exposes a deterministic verification report.
+records the operation trace, and exposes deterministic verification reports.
 It does not replace the state model or infer semantics from text.
 """
 
@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import hashlib
-import json
 from typing import Any, Iterable
 
 from glyphin_research_core import GlyphinMemory
+from glyphin_state_referee import referee_memory
 
 
 @dataclass(frozen=True)
@@ -25,13 +25,15 @@ class ExecutionEvent:
 
 @dataclass
 class ExecutionReport:
-    """Machine-readable result of an execution and reload check."""
+    """Machine-readable result of an execution and independent reload checks."""
 
     events: list[ExecutionEvent] = field(default_factory=list)
     state_count: int = 0
     relationship_count: int = 0
     canonical_sha256: str = ""
     reload_exact: bool = False
+    state_referee_exact: bool = False
+    state_referee_mismatches: list[dict[str, Any]] = field(default_factory=list)
     lineage_checks: dict[str, list[str]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,6 +46,8 @@ class ExecutionReport:
             "relationship_count": self.relationship_count,
             "canonical_sha256": self.canonical_sha256,
             "reload_exact": self.reload_exact,
+            "state_referee_exact": self.state_referee_exact,
+            "state_referee_mismatches": self.state_referee_mismatches,
             "lineage_checks": self.lineage_checks,
         }
 
@@ -105,6 +109,7 @@ class GlyphinExecutionEngine:
         digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
         restored = GlyphinMemory.from_json(encoded)
         exact = restored.to_json() == encoded
+        state_result = referee_memory(self.memory, restored)
         lineage = {name: restored.get_path(name) for name in lineage_targets}
         relationships = sum(
             1 for state in self.memory.states.values() if state.parent is not None
@@ -115,6 +120,8 @@ class GlyphinExecutionEngine:
             relationship_count=relationships,
             canonical_sha256=digest,
             reload_exact=exact,
+            state_referee_exact=state_result.exact,
+            state_referee_mismatches=[dict(item) for item in state_result.field_mismatches],
             lineage_checks=lineage,
         )
 
