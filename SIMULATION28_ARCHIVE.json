@@ -1,0 +1,33 @@
+{
+  "simulation": 28,
+  "benchmark_version": "28.4",
+  "purpose": "Query-conditioned retrieval from reconstructed state with explicit query anchors and dependency closure.",
+  "workflow_run_id": 34417430194,
+  "workflow_job_id": 102685298622,
+  "head_sha": "1a0c54bc0642ec797d92ea11910852f929037b79",
+  "source_file": "glyphin_simulation28.py",
+  "source_blob_sha": "3609307d4dfeaeee026a5a6a47444859857b1c0a",
+  "workflow": ".github/workflows/glyphin-simulation28.yml",
+  "artifact_id": 10129626308,
+  "artifact_sha256": "26836c19df8fa7ecf5a594161b6bdaeb38f97b838067e39cfb893917f2360acd",
+  "result_data_sha256": "7973b08be321e03cbbd36b187cebd64632092efdf635769c0c6b6c69646ba8a7",
+  "result_json_sha256": "b762d3154024720ecf49064f71ce7b598e50f1f116fbb33abea0dd920816b305",
+  "tokenizer": "cl100k_base",
+  "fixture_family": "Sim21 high-entropy memory",
+  "seeds": [21092026,31092026,41092026,51092026,61092026],
+  "sizes": [256,1024,2048],
+  "query_types": ["direct_attribute","parent_lookup","child_lookup","multi_hop_traversal","relationship_exists","path_reconstruction","temporal_ordering","parameter_retrieval","cross_state_comparison","mixed_multi_hop"],
+  "variants": ["sim17-compact","structural-lineage","state-columnar"],
+  "total_cases": 450,
+  "exact_state_cases": 450,
+  "exact_answer_cases": 450,
+  "utility_exact_rate_pct": 100.0,
+  "summary": {
+    "sim17-compact": {"mean_conditioned_token_reduction_pct": 99.11672009118365,"median_conditioned_token_reduction_pct": 99.56911641574503,"mean_retrieved_state_pct": 0.7919921875,"mean_unnecessary_state_pct": 99.2080078125,"mean_multi_hop_recall_pct": 100.0},
+    "structural-lineage": {"mean_conditioned_token_reduction_pct": 99.02523147894638,"median_conditioned_token_reduction_pct": 99.51147702067436,"mean_retrieved_state_pct": 0.7919921875,"mean_unnecessary_state_pct": 99.2080078125,"mean_multi_hop_recall_pct": 100.0},
+    "state-columnar": {"mean_conditioned_token_reduction_pct": 99.01752771391494,"median_conditioned_token_reduction_pct": 99.50863123613593,"mean_retrieved_state_pct": 0.7919921875,"mean_unnecessary_state_pct": 99.2080078125,"mean_multi_hop_recall_pct": 100.0}
+  },
+  "verification": {"artifact_sha256_recomputed": true,"artifact_sha256_matches_github": true,"result_data_sha256_recomputed": true,"result_data_sha256_matches_embedded": true,"workflow_conclusion": "success"},
+  "caveats": ["This is selective state transfer, not end-to-end retrieval/index discovery: query anchors and dependency selection are supplied deterministically from the original query specification and their discovery/index cost is excluded from transported state cost.","multi_hop_recall_pct measures dependency-closure completeness, not learned retriever recall.","Conditioned token reduction is measured against full encoded memory plus the same explicit query payload; it does not claim a global minimum or optimal representation.","Evidence is deterministic representation/state utility only; it does not establish LLM semantic equivalence, latency, universal generalization, or consciousness."],
+  "interpretation": "Across 450 deterministic cases, all three representations reconstructed exact state and produced exact answers after query-conditioned dependency transfer. The conditioned payload contained about 0.792% of the full state count on average, while preserving exact answers. Mean input-token reduction was 99.12% for Sim17 compact, 99.03% for structural-lineage, and 99.02% for state-columnar under cl100k_base. This is evidence that once query anchors are explicit, the required structural dependency closure can be transported at a much smaller payload than the full compressed memory in this benchmark; it is not evidence that an autonomous retriever can discover that closure without an index or query metadata."
+}
