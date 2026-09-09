@@ -8,7 +8,8 @@ This repository contains two distinct Glyphin code paths:
 ## Research execution path
 
 `glyphin_runtime.py` is the minimal executable entry point around `GlyphinMemory`.
-It supports deterministic experiment operations:
+`glyphin_engine.py` adds operation tracing and reload verification for reproducible runs.
+The supported research sequence is:
 
 `create -> link -> reinforce -> decay -> recall -> save/load`
 
@@ -20,16 +21,24 @@ The runtime makes no model-provider calls and does not claim token savings.
 
 `glyphin_roundtrip.py` and `glyphin_referee.py` are structural verification layers. They can establish graph/topology fidelity; they do **not** establish full GlyphState dynamic fidelity unless the relevant state variables are explicitly tested.
 
+## Encoding and reconstruction
+
+`glyphin_encoder.py` provides transparent deterministic encoders. Exact topology encoding includes isolated nodes as bare identifiers; this is required for true node-set fidelity.
+
+`glyphin_candidate_search.py` evaluates a finite, topology-derived candidate set using the independent reconstruction/referee layer. It is explicitly **bounded**, not exhaustive, global, or optimal.
+
+`glyphin_benchmark.py` generates deterministic random DAGs, cyclic graphs, and adversarial structures for generalization testing. It records exact-referee outcomes and character/word compression. Token counts remain `NOT_MEASURED` unless a tokenizer is supplied.
+
 ## Evidence rule
 
 A claim is not considered verified merely because an implementation prints a successful result. Reproduce the run, compare the actual artifacts, and preserve mismatches. Token metrics remain unmeasured unless an explicit tokenizer is supplied.
 
 ## Tests
 
-The research modules use Python's standard `unittest` runner. From this directory:
+`run_glyphin_tests.py` is the canonical dependency-free test runner. It collects both `unittest.TestCase` classes and zero-argument `test_*` functions so the repository has one test command:
 
 ```text
-python -m unittest discover -p 'test_*.py'
+python run_glyphin_tests.py
 ```
 
-No external package is required for the research core/runtime.
+The GitHub Actions workflow runs this suite and the research smoke test on pushes and pull requests to `main`.
