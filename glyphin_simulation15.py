@@ -20,15 +20,15 @@ from glyphin_research_core import GlyphinMemory
 from glyphin_state_referee import referee_memory
 
 VERSION = "15.0"
-NULL = "~"
+NULL = ""
 ESCAPE = "\\"
 
 
 def esc(value: str) -> str:
-    """Escape grammar punctuation and the null marker."""
+    """Escape grammar punctuation. Empty parent field represents None."""
     out = []
     for char in str(value):
-        if char in (ESCAPE, "|", ";", ",", NULL):
+        if char in (ESCAPE, "|", ";", ","):
             out.append(ESCAPE)
         out.append(char)
     return "".join(out)
@@ -72,7 +72,7 @@ def encode_semantic(memory: GlyphinMemory) -> str:
             state.sigma,
             state.created_at,
         ]
-        records.append("S" + "|".join(esc(field) if field != NULL else NULL for field in fields))
+        records.append("S" + "|".join(esc(field) for field in fields))
     return ";".join(records)
 
 
