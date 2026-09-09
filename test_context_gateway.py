@@ -23,3 +23,12 @@ def test_metrics_explicitly_leave_tokens_unmeasured() -> None:
     metrics = gateway.metrics(packet)
     assert metrics.source_chars >= metrics.encoded_chars
     assert metrics.token_reduction_pct is None
+
+
+def test_selection_is_budget_bounded() -> None:
+    gateway = ContextGateway(max_chars=10)
+    gateway.add(ContextItem("long", "12345678901234567890", priority=10))
+    packet = gateway.build("long")
+    assert packet.packet_chars <= 10
+    assert packet.selected_keys == ()
+    assert packet.excluded_keys == ("long",)
