@@ -84,3 +84,5 @@ jobs:
         with:
           name: glyphin-simulation33-result
           path: glyphin_simulation33_result.json
+
+# Sim33 controlled-boundary verification is intentionally deterministic.
