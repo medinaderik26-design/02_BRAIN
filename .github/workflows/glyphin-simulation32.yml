@@ -18,14 +18,14 @@ jobs:
       - name: Install dependencies
         run: pip install tiktoken
       - name: Run Sim32
-        run: python glyphin_simulation32.py --output glyphin_simulation32_result.json
+        run: python glyphin_simulation32_runner.py --output glyphin_simulation32_result.json
       - name: Validate result
         run: |
           python - <<'PY'
           import json
           d=json.load(open('glyphin_simulation32_result.json'))
           assert d['simulation']==32
-          assert d['benchmark_version']=='32.0'
+          assert d['benchmark_version']=='32.1'
           assert len(d['cases'])==1350
           for v,s in d['summary'].items():
               assert s['cases']==450
