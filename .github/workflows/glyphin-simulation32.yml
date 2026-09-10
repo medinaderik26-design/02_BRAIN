@@ -34,6 +34,7 @@ jobs:
               assert s['index_exact_cases']==450
               assert s['answer_exact_cases']==450
               assert s['utility_exact_rate_pct']==100.0
+              # 45 parameter-retrieval cases are intentionally anchor-free.
               assert s['unique_resolution_cases']==405
               assert s['cases']-s['unique_resolution_cases']==45
           print(json.dumps(d['summary'],indent=2,sort_keys=True))
