@@ -2,28 +2,43 @@
 import re
 import glyphin_simulation33 as sim
 
-VOCAB = (
-    ("alpha", "first", "primary"), ("beta", "second", "secondary"),
-    ("gamma", "third", "tertiary"), ("delta", "fourth", "quaternary"),
-    ("amber", "gold", "yellow"), ("azure", "blue", "cyan"),
-    ("crimson", "red", "scarlet"), ("emerald", "green", "jade"),
-    ("north", "northern", "upward"), ("south", "southern", "downward"),
-    ("east", "eastern", "rightward"), ("west", "western", "leftward"),
-    ("calm", "quiet", "steady"), ("rapid", "fast", "quick"),
-    ("dense", "compact", "thick"), ("sparse", "thin", "scattered"),
-)
+A = (("alpha", "first", "primary"), ("beta", "second", "secondary"),
+     ("gamma", "third", "tertiary"), ("delta", "fourth", "quaternary"),
+     ("epsilon", "fifth", "quinary"), ("zeta", "sixth", "senary"),
+     ("eta", "seventh", "septenary"), ("theta", "eighth", "octonary"),
+     ("iota", "ninth", "nonary"), ("kappa", "tenth", "denary"),
+     ("lambda", "eleventh", "undecimal"), ("mu", "twelfth", "duodecimal"),
+     ("nu", "thirteenth", "tridecimal"), ("xi", "fourteenth", "tetradecimal"),
+     ("omicron", "fifteenth", "quindecimal"), ("pi", "sixteenth", "hexadecimal"))
+B = (("amber", "gold", "yellow"), ("azure", "blue", "cyan"),
+     ("crimson", "red", "scarlet"), ("emerald", "green", "jade"),
+     ("violet", "purple", "mauve"), ("ivory", "white", "cream"),
+     ("charcoal", "black", "ebony"), ("coral", "orange", "tangerine"),
+     ("teal", "turquoise", "aqua"), ("indigo", "navy", "cobalt"),
+     ("bronze", "copper", "russet"), ("silver", "gray", "slate"),
+     ("rose", "pink", "blush"), ("lime", "chartreuse", "olive"),
+     ("maroon", "burgundy", "wine"), ("beige", "tan", "khaki"))
+C = (("north", "northern", "upward"), ("south", "southern", "downward"),
+     ("east", "eastern", "rightward"), ("west", "western", "leftward"),
+     ("inside", "internal", "within"), ("outside", "external", "beyond"),
+     ("near", "nearby", "close"), ("far", "distant", "remote"),
+     ("above", "upper", "overhead"), ("below", "lower", "underneath"),
+     ("before", "prior", "earlier"), ("after", "later", "subsequent"),
+     ("calm", "quiet", "steady"), ("rapid", "fast", "quick"),
+     ("dense", "compact", "thick"), ("sparse", "thin", "scattered"))
 
-VERSION = "33.1"
+VERSION = "33.2"
+VOCABS = (A, B, C)
 
 
 def _digits(i):
-    base = len(VOCAB)
+    base = 16
     return ((i // (base * base)) % base, (i // base) % base, i % base)
 
 
 def descriptor_family(i):
     a, b, c = _digits(i)
-    return tuple(VOCAB[j] for j in (a, b, c))
+    return (A[a], B[b], C[c])
 
 
 def build_fixture(memory):
@@ -48,20 +63,12 @@ def _tokens(text):
 
 def controlled_resolve(query, index):
     # Controlled resolver: punctuation-insensitive, order-insensitive, and
-    # synonym-aware through the explicit three-word vocabulary. This is not NLP.
+    # synonym-aware through an explicit finite vocabulary. This is not NLP.
     toks = _tokens(query)
     hits = []
     for key, state in index.items():
-        need = list(key)
         remaining = list(toks)
-        ok = True
-        for token in need:
-            try:
-                remaining.remove(token)
-            except ValueError:
-                ok = False
-                break
-        if ok:
+        if all(token in remaining and not remaining.remove(token) for token in key):
             hits.append(state)
     return sorted(set(hits))
 
