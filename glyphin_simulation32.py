@@ -29,23 +29,13 @@ SIZES=(256,1024,2048)
 TOKENIZER="cl100k_base"
 QUERY_TYPES=("direct_attribute","parent_lookup","child_lookup","multi_hop_traversal","relationship_exists","path_reconstruction","temporal_ordering","parameter_retrieval","cross_state_comparison","mixed_multi_hop")
 VARIANTS={"sim17-compact":(encode_compact,decode_compact),"structural-lineage":(encode_structural,decode_structural),"state-columnar":(encode_columnar,decode_columnar)}
-
-CONCEPTS=(
-    ("alpha","first","primary"),("beta","second","secondary"),("gamma","third","tertiary"),("delta","fourth","quaternary"),
-    ("amber","gold","yellow"),("azure","blue","cyan"),("crimson","red","scarlet"),("emerald","green","jade"),
-    ("north","northern","upward"),("south","southern","downward"),("east","eastern","rightward"),("west","western","leftward"),
-    ("calm","quiet","steady"),("rapid","fast","quick"),("dense","compact","thick"),("sparse","thin","scattered"),
-)
+CONCEPTS=(("alpha","first","primary"),("beta","second","secondary"),("gamma","third","tertiary"),("delta","fourth","quaternary"),("amber","gold","yellow"),("azure","blue","cyan"),("crimson","red","scarlet"),("emerald","green","jade"),("north","northern","upward"),("south","southern","downward"),("east","eastern","rightward"),("west","western","leftward"),("calm","quiet","steady"),("rapid","fast","quick"),("dense","compact","thick"),("sparse","thin","scattered"))
 
 def names(memory): return sorted(memory.states)
-
-def build_index(memory):
-    return {n:{"parent":memory.states[n].parent,"children":sorted(memory.states[n].children)} for n in names(memory)}
-
+def build_index(memory): return {n:{"parent":memory.states[n].parent,"children":sorted(memory.states[n].children)} for n in names(memory)}
 def ancestors(parent_map,node):
     out=[]; seen=set(); cur=node
-    while cur is not None and cur not in seen:
-        seen.add(cur); out.append(cur); cur=parent_map[cur]
+    while cur is not None and cur not in seen: seen.add(cur); out.append(cur); cur=parent_map[cur]
     return out
 
 def ground_truth_closure(memory,q,a,b,c):
@@ -87,37 +77,30 @@ def index_closure(index,q,a,b,c):
 def induced_memory(memory,required):
     out=GlyphinMemory(decay_lambda=memory.decay_lambda,alpha=memory.alpha,beta=memory.beta)
     for n in sorted(required):
-        s=memory.states[n]
-        out.add_state(name=s.name,level=s.level,cohesion=s.cohesion,parent=None,frequency=s.frequency,resonance=s.resonance,sigma=s.sigma,created_at=s.created_at)
+        s=memory.states[n]; out.add_state(name=s.name,level=s.level,cohesion=s.cohesion,parent=None,frequency=s.frequency,resonance=s.resonance,sigma=s.sigma,created_at=s.created_at)
     for n in sorted(required):
         p=memory.states[n].parent
         if p in out.states: out.link_state(p,n)
     return out
 
 def concept_for_index(i): return CONCEPTS[i % len(CONCEPTS)]
-
 def descriptor_map(memory):
     ns=names(memory); out={}
     for i,n in enumerate(ns):
-        c=concept_for_index(i)
-        out[n]={"canonical":c[0],"synonyms":list(c)}
+        c=concept_for_index(i); out[n]={"canonical":c[0],"synonyms":list(c)}
     return out
 
 def build_descriptor_index(dmap):
     idx={}
     for state,info in dmap.items():
-        for term in info["synonyms"]:
-            idx.setdefault(term,[]).append(state)
+        for term in info["synonyms"]: idx.setdefault(term,[]).append(state)
     return {k:sorted(v) for k,v in sorted(idx.items())}
-
 def choose_descriptor(dmap,state,style):
-    vals=dmap[state]["synonyms"]
-    return vals[0] if style==0 else vals[1] if style==1 else vals[2]
+    vals=dmap[state]["synonyms"]; return vals[0] if style==0 else vals[1] if style==1 else vals[2]
 
 def make_query(q,a,b,c,dmap,style,distractor=None):
     if q=="parameter_retrieval": return "return memory parameters"
-    da=choose_descriptor(dmap,a,style); db=choose_descriptor(dmap,b,style); dc=choose_descriptor(dmap,c,style)
-    extra=(" while ignoring "+distractor) if distractor else ""
+    da,db,dc=choose_descriptor(dmap,a,style),choose_descriptor(dmap,b,style),choose_descriptor(dmap,c,style); extra=(" while ignoring "+distractor) if distractor else ""
     if q=="direct_attribute": return f"show the {da} state{extra}"
     if q=="parent_lookup": return f"find the parent of the {da} state{extra}"
     if q=="child_lookup": return f"list children of the {da} state{extra}"
@@ -142,13 +125,11 @@ def resolve_controlled(text,descriptor_index):
     for term,cands in descriptor_index.items():
         m=re.search(r"\b"+re.escape(term)+r"\b",text.lower())
         if m: hits.append((m.start(),term,cands))
-    hits.sort(key=lambda x:(x[0],x[1]))
-    # Multiple descriptor mentions are allowed only when they resolve to distinct states.
-    resolved=[]; used_terms=[]
+    hits.sort(key=lambda x:(x[0],x[1])); resolved=[]
     for _,term,cands in hits:
         if len(cands)!=1: return None,"ambiguous_descriptor",len(cands)
         state=cands[0]
-        if state not in resolved: resolved.append(state); used_terms.append(term)
+        if state not in resolved: resolved.append(state)
     return resolved,"unique",1
 
 def query_spec(memory,q,a,b,c):
@@ -177,15 +158,18 @@ def evaluate(mem,v,enc,dec,tok,q,i,structural_index,descriptor_index,dmap,style)
     if q!="parameter_retrieval":
         di=(i+n//2)%n
         if ns[di] not in {a,b,c}: distractor=choose_descriptor(dmap,ns[di],(style+1)%3)
-    qtext=make_query(q,a,b,c,dmap,style,distractor)
-    resolved,reason,candidate_count=resolve_controlled(qtext,descriptor_index)
+    qtext=make_query(q,a,b,c,dmap,style,distractor); resolved,reason,candidate_count=resolve_controlled(qtext,descriptor_index)
     expected=gold_anchors(q,a,b,c); anchor_exact=(resolved==expected if q!="parameter_retrieval" else resolved==[])
     truth=ground_truth_closure(mem,q,a,b,c); required=index_closure(structural_index,q,a,b,c); index_exact=(truth==required)
     if resolved is not None and anchor_exact:
         selected=induced_memory(rebuilt,required)
-        answer_exact=(query_spec(selected,q,*expected)==query_spec(mem,q,a,b,c))
-    else:
-        selected=rebuilt; answer_exact=False
+        if q=="temporal_ordering": selected_args=(a,b,c)
+        elif q=="mixed_multi_hop": selected_args=(a,None,c)
+        elif len(expected)==2: selected_args=(a,b,None)
+        elif len(expected)==1: selected_args=(a,None,None)
+        else: selected_args=(None,None,None)
+        answer_exact=(query_spec(selected,q,*selected_args)==query_spec(mem,q,a,b,c))
+    else: selected=rebuilt; answer_exact=False
     full=tokens(tok,encoded)+tokens(tok,qtext); selected_tokens=tokens(tok,enc(selected))+tokens(tok,qtext)
     return {"variant":v,"query_type":q,"query_index":i,"style":style,"state_exact":state_ref.exact,"anchor_exact":anchor_exact,"unique_resolution":resolved is not None and reason=="unique","resolution_reason":reason,"anchor_candidates":candidate_count,"index_exact":index_exact,"answer_exact":answer_exact,"total_states":n,"required_states":len(required),"retrieved_state_pct":100*len(required)/n,"full_input_tokens":full,"selected_input_tokens":selected_tokens,"tokens_saved":full-selected_tokens,"selected_token_reduction_pct":100*(full-selected_tokens)/full if full else 0,"query_text":qtext,"gold_anchors":expected,"resolved_anchors":resolved}
 
