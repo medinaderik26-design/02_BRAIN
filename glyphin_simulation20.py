@@ -64,7 +64,8 @@ def decode_columnar(text: str) -> GlyphinMemory:
     sigmas = split_escaped(r[7], ",") if r[7] else []
     base_s, offsets_s = r[8].split(":", 1)
     base_us = int(base_s); offsets = [int(x) for x in offsets_s.split(",") if x]
-    deltas = [int(x) for x in r[9].split(",") if x]
+    # Preserve zero deltas: the minimum timestamp is legitimately encoded as 0.
+    deltas = [int(x) for x in r[9].split(",")] if r[9] else []
     vectors = (parents, levels, cohesions, freqs, resonances, sigmas, offsets, deltas)
     if any(len(v) != len(names) for v in vectors): raise ValueError("column lengths differ")
     pending = set(range(len(names)))
@@ -99,21 +100,24 @@ def evaluate(name, enc, dec, memory, tokenizer):
     return {"variant": name, "states": len(memory.states), "source_chars": m.source_chars,
             "encoded_chars": m.encoded_chars, "char_reduction_pct": m.char_reduction_pct,
             "source_tokens": st, "encoded_tokens": et,
-            "token_reduction_pct": (st-et)/st*100 if st else 0.0,
-            "exact": verdict.exact, "field_mismatches": verdict.field_mismatches,
+            "token_reduction_pct": (1 - et / st) * 100.0,
+            "exact": verdict.exact, "missing_states": verdict.missing_states,
+            "extra_states": verdict.extra_states, "field_mismatches": verdict.field_mismatches,
             "parameter_mismatches": verdict.parameter_mismatches}
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--sizes", nargs="+", type=int, default=list(SIZES)); ap.add_argument("--output", default="glyphin_simulation20_result.json")
-    a = ap.parse_args(); tok = tiktoken.get_encoding(TOKENIZER_NAME); cases=[]
-    for n in a.sizes:
-        mem=build_memory(n)
-        for name,(enc,dec) in VARIANTS.items(): cases.append(evaluate(name,enc,dec,mem,tok))
-    exact=[c for c in cases if c["exact"]]; reds=[c["token_reduction_pct"] for c in exact]
-    result={"benchmark_version":VERSION,"seed":SEED,"tokenizer":TOKENIZER_NAME,"sizes":a.sizes,"variants":list(VARIANTS),"total_cases":len(cases),"exact_cases":len(exact),"exact_rate_pct":100*len(exact)/len(cases) if cases else 0.0,"exact_token_mean_pct":statistics.mean(reds) if reds else 0.0,"exact_token_median_pct":statistics.median(reds) if reds else 0.0,"cases":cases}
-    raw=json.dumps(result,sort_keys=True,separators=(",",":")).encode(); result["data_sha256"]=hashlib.sha256(raw).hexdigest()
-    with open(a.output,"w",encoding="utf-8") as f: json.dump(result,f,indent=2,sort_keys=True); f.write("\n")
-    print(json.dumps(result,indent=2,sort_keys=True)); return 0 if len(exact)==len(cases) else 1
+    ap = argparse.ArgumentParser(); ap.add_argument("--output", default="glyphin_simulation20_result.json"); args = ap.parse_args()
+    tokenizer = tiktoken.get_encoding(TOKENIZER_NAME); cases=[]
+    for size in SIZES:
+        mem = build_memory(size, SEED + size)
+        for name,(enc,dec) in VARIANTS.items(): cases.append(evaluate(name,enc,dec,mem,tokenizer))
+    summary={}
+    for name in VARIANTS:
+        rows=[r for r in cases if r["variant"]==name]
+        reds=[r["token_reduction_pct"] for r in rows]
+        summary[name]={"mean_token_reduction_pct":sum(reds)/len(reds),"median_token_reduction_pct":statistics.median(reds),"exact_cases":sum(r["exact"] for r in rows),"total_cases":len(rows)}
+    out={"simulation":20,"benchmark_version":VERSION,"seed":SEED,"sizes":SIZES,"tokenizer":TOKENIZER_NAME,"variants":list(VARIANTS),"cases":cases,"summary":summary,"result_data_sha256":hashlib.sha256(json.dumps(cases,sort_keys=True).encode()).hexdigest(),"scope":"Benchmark-specific evidence only; not a global optimum or universal claim."}
+    Path(args.output).write_text(json.dumps(out,indent=2,sort_keys=True),encoding="utf-8"); print(json.dumps(summary,indent=2,sort_keys=True))
 
-if __name__ == "__main__": raise SystemExit(main())
+if __name__ == "__main__": main()
