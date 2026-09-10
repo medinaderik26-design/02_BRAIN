@@ -22,7 +22,6 @@ from glyphin_simulation18 import encode_structural, decode_structural
 from glyphin_simulation20 import encode_columnar, decode_columnar
 from glyphin_state_referee import referee_memory
 from glyphin_research_core import GlyphinMemory
-
 VERSION="32.0"
 SEEDS=(21092026,31092026,41092026,51092026,61092026)
 SIZES=(256,1024,2048)
@@ -30,14 +29,12 @@ TOKENIZER="cl100k_base"
 QUERY_TYPES=("direct_attribute","parent_lookup","child_lookup","multi_hop_traversal","relationship_exists","path_reconstruction","temporal_ordering","parameter_retrieval","cross_state_comparison","mixed_multi_hop")
 VARIANTS={"sim17-compact":(encode_compact,decode_compact),"structural-lineage":(encode_structural,decode_structural),"state-columnar":(encode_columnar,decode_columnar)}
 CONCEPTS=(("alpha","first","primary"),("beta","second","secondary"),("gamma","third","tertiary"),("delta","fourth","quaternary"),("amber","gold","yellow"),("azure","blue","cyan"),("crimson","red","scarlet"),("emerald","green","jade"),("north","northern","upward"),("south","southern","downward"),("east","eastern","rightward"),("west","western","leftward"),("calm","quiet","steady"),("rapid","fast","quick"),("dense","compact","thick"),("sparse","thin","scattered"))
-
 def names(memory): return sorted(memory.states)
 def build_index(memory): return {n:{"parent":memory.states[n].parent,"children":sorted(memory.states[n].children)} for n in names(memory)}
 def ancestors(parent_map,node):
     out=[]; seen=set(); cur=node
     while cur is not None and cur not in seen: seen.add(cur); out.append(cur); cur=parent_map[cur]
     return out
-
 def ground_truth_closure(memory,q,a,b,c):
     if q=="parameter_retrieval": return set()
     p={n:memory.states[n].parent for n in names(memory)}; ch={n:set(memory.states[n].children) for n in names(memory)}
@@ -55,7 +52,6 @@ def ground_truth_closure(memory,q,a,b,c):
         if p[c]: out.add(p[c])
         return out
     raise ValueError(q)
-
 def index_closure(index,q,a,b,c):
     p={n:index[n]["parent"] for n in index}; ch={n:set(index[n]["children"]) for n in index}
     if q=="parameter_retrieval": return set()
@@ -73,7 +69,6 @@ def index_closure(index,q,a,b,c):
         if p[c]: out.add(p[c])
         return out
     raise ValueError(q)
-
 def induced_memory(memory,required):
     out=GlyphinMemory(decay_lambda=memory.decay_lambda,alpha=memory.alpha,beta=memory.beta)
     for n in sorted(required):
@@ -82,14 +77,9 @@ def induced_memory(memory,required):
         p=memory.states[n].parent
         if p in out.states: out.link_state(p,n)
     return out
-
 def concept_for_index(i): return CONCEPTS[i % len(CONCEPTS)]
 def descriptor_map(memory):
-    ns=names(memory); out={}
-    for i,n in enumerate(ns):
-        c=concept_for_index(i); out[n]={"canonical":c[0],"synonyms":list(c)}
-    return out
-
+    ns=names(memory); return {n:{"canonical":concept_for_index(i)[0],"synonyms":list(concept_for_index(i))} for i,n in enumerate(ns)}
 def build_descriptor_index(dmap):
     idx={}
     for state,info in dmap.items():
@@ -97,7 +87,6 @@ def build_descriptor_index(dmap):
     return {k:sorted(v) for k,v in sorted(idx.items())}
 def choose_descriptor(dmap,state,style):
     vals=dmap[state]["synonyms"]; return vals[0] if style==0 else vals[1] if style==1 else vals[2]
-
 def make_query(q,a,b,c,dmap,style,distractor=None):
     if q=="parameter_retrieval": return "return memory parameters"
     da,db,dc=choose_descriptor(dmap,a,style),choose_descriptor(dmap,b,style),choose_descriptor(dmap,c,style); extra=(" while ignoring "+distractor) if distractor else ""
@@ -111,7 +100,6 @@ def make_query(q,a,b,c,dmap,style,distractor=None):
     if q=="cross_state_comparison": return f"compare properties of the {da} and {db} states{extra}"
     if q=="mixed_multi_hop": return f"trace the {da} state and compare it with {dc}{extra}"
     raise ValueError(q)
-
 def gold_anchors(q,a,b,c):
     if q=="parameter_retrieval": return []
     if q in ("direct_attribute","parent_lookup","child_lookup","multi_hop_traversal"): return [a]
@@ -119,7 +107,6 @@ def gold_anchors(q,a,b,c):
     if q=="temporal_ordering": return [a,b,c]
     if q=="mixed_multi_hop": return [a,c]
     raise ValueError(q)
-
 def resolve_controlled(text,descriptor_index):
     hits=[]
     for term,cands in descriptor_index.items():
@@ -131,7 +118,6 @@ def resolve_controlled(text,descriptor_index):
         state=cands[0]
         if state not in resolved: resolved.append(state)
     return resolved,"unique",1
-
 def query_spec(memory,q,a,b,c):
     if q=="parameter_retrieval": return {"decay_lambda":memory.decay_lambda,"alpha":memory.alpha,"beta":memory.beta}
     sa=memory.states[a]
@@ -149,9 +135,7 @@ def query_spec(memory,q,a,b,c):
     if q=="mixed_multi_hop":
         sc=memory.states[c]; return {"start":a,"start_parent":sa.parent,"start_path":memory.get_path(a),"parent_children":sorted(memory.states[sa.parent].children) if sa.parent else [],"compare_to":c,"same_parent":sa.parent==sc.parent}
     raise ValueError(q)
-
 def tokens(tok,text): return len(tok.encode(text,disallowed_special=()))
-
 def evaluate(mem,v,enc,dec,tok,q,i,structural_index,descriptor_index,dmap,style):
     encoded=enc(mem); rebuilt=dec(encoded); state_ref=referee_memory(mem,rebuilt); ns=names(mem); n=len(ns); a,b,c=ns[i%n],ns[(i+n//3)%n],ns[(i+2*n//3)%n]
     distractor=None
@@ -162,7 +146,7 @@ def evaluate(mem,v,enc,dec,tok,q,i,structural_index,descriptor_index,dmap,style)
     expected=gold_anchors(q,a,b,c); anchor_exact=(resolved==expected if q!="parameter_retrieval" else resolved==[])
     truth=ground_truth_closure(mem,q,a,b,c); required=index_closure(structural_index,q,a,b,c); index_exact=(truth==required)
     if resolved is not None and anchor_exact:
-        selected=induced_memory(rebuilt,required)
+        selected=rebuilt if not required else induced_memory(rebuilt,required)
         if q=="temporal_ordering": selected_args=(a,b,c)
         elif q=="mixed_multi_hop": selected_args=(a,None,c)
         elif len(expected)==2: selected_args=(a,b,None)
@@ -172,10 +156,8 @@ def evaluate(mem,v,enc,dec,tok,q,i,structural_index,descriptor_index,dmap,style)
     else: selected=rebuilt; answer_exact=False
     full=tokens(tok,encoded)+tokens(tok,qtext); selected_tokens=tokens(tok,enc(selected))+tokens(tok,qtext)
     return {"variant":v,"query_type":q,"query_index":i,"style":style,"state_exact":state_ref.exact,"anchor_exact":anchor_exact,"unique_resolution":resolved is not None and reason=="unique","resolution_reason":reason,"anchor_candidates":candidate_count,"index_exact":index_exact,"answer_exact":answer_exact,"total_states":n,"required_states":len(required),"retrieved_state_pct":100*len(required)/n,"full_input_tokens":full,"selected_input_tokens":selected_tokens,"tokens_saved":full-selected_tokens,"selected_token_reduction_pct":100*(full-selected_tokens)/full if full else 0,"query_text":qtext,"gold_anchors":expected,"resolved_anchors":resolved}
-
 def summarize(rows):
     return {"cases":len(rows),"state_exact_cases":sum(r["state_exact"] for r in rows),"unique_resolution_cases":sum(r["unique_resolution"] for r in rows),"anchor_exact_cases":sum(r["anchor_exact"] for r in rows),"index_exact_cases":sum(r["index_exact"] for r in rows),"answer_exact_cases":sum(r["answer_exact"] for r in rows),"utility_exact_rate_pct":100*sum(r["state_exact"] and r["anchor_exact"] and r["index_exact"] and r["answer_exact"] for r in rows)/len(rows) if rows else 0,"mean_selected_token_reduction_pct":statistics.mean(r["selected_token_reduction_pct"] for r in rows) if rows else 0,"median_selected_token_reduction_pct":statistics.median(r["selected_token_reduction_pct"] for r in rows) if rows else 0,"mean_retrieved_state_pct":statistics.mean(r["retrieved_state_pct"] for r in rows) if rows else 0}
-
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument("--output",default="glyphin_simulation32_result.json"); args=ap.parse_args(); tok=tiktoken.get_encoding(TOKENIZER); rows=[]
     for seed in SEEDS:
