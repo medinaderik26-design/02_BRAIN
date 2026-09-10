@@ -43,7 +43,7 @@ def decode_columnar(text: str) -> GlyphinMemory:
     if len(p) != 3: raise ValueError("invalid parameters")
     memory = GlyphinMemory(decay_lambda=float(p[0]), alpha=float(p[1]), beta=float(p[2]))
     names = split_escaped(r[1], ",") if r[1] else []
-    parents = r[2].split(",") if r[2] else []
+    parents = r[2].split(",") if names else []
     levels = [int(x) for x in r[3].split(",")] if r[3] else []
     cohesions = [float(x) for x in r[4].split(",")] if r[4] else []
     freqs = [int(x) for x in r[5].split(",")] if r[5] else []
