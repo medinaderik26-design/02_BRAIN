@@ -15,7 +15,7 @@ from glyphin_simulation17 import encode_compact
 from glyphin_simulation18 import encode_structural
 from glyphin_simulation20 import encode_columnar
 
-VERSION="35.1"
+VERSION="35.2"
 SEEDS=(21092026,31092026,41092026,51092026,61092026)
 SIZES=(256,1024,2048)
 TARGETS_PER_STATE=64
@@ -23,6 +23,7 @@ ENCODING="cl100k_base"
 VARIANTS={"sim17-compact":encode_compact,"structural-lineage":encode_structural,"state-columnar":encode_columnar}
 THRESHOLDS=(0.0,0.25,0.5,0.75,0.9,0.99)
 OUTCOMES=("correct","wrong_unique","ambiguous","miss")
+CASES_PER_OUTCOME=5*3*64
 
 def parent_closure(mem,anchors):
     wanted=set(anchors); stack=list(anchors)
@@ -96,7 +97,8 @@ def main():
        accepted=[r for r in rows if r["accepted"]]
        correct=[r for r in accepted if r["resolver_outcome"]=="correct"]
        wrong=[r for r in accepted if r["resolver_outcome"]=="wrong_unique"]
-       summary[v][str(t)]={"cases":len(rows),"accepted":len(accepted),"coverage_pct":100*len(accepted)/len(rows),"correct_acceptance_pct":100*len(correct)/240,"wrong_unique_false_acceptance_pct":100*len(wrong)/240,"ambiguous_false_acceptance_pct":100*sum(r["resolver_outcome"]=="ambiguous" for r in accepted)/240,"closure_exact_pct":100*sum(r["closure_exact"] for r in rows)/len(rows),"answer_exact_pct":100*sum(r["answer_exact"] for r in rows)/len(rows),"transport_exact_pct":100*sum(r["transport_exact"] for r in rows)/len(rows),"mean_selected_token_reduction_pct":sum(r["selected_token_reduction_pct"] for r in accepted)/len(accepted) if accepted else None}
+       ambiguous=[r for r in accepted if r["resolver_outcome"]=="ambiguous"]
+       summary[v][str(t)]={"cases":len(rows),"accepted":len(accepted),"coverage_pct":100*len(accepted)/len(rows),"correct_acceptance_pct":100*len(correct)/CASES_PER_OUTCOME,"wrong_unique_false_acceptance_pct":100*len(wrong)/CASES_PER_OUTCOME,"ambiguous_false_acceptance_pct":100*len(ambiguous)/CASES_PER_OUTCOME,"closure_exact_pct":100*sum(r["closure_exact"] for r in rows)/len(rows),"answer_exact_pct":100*sum(r["answer_exact"] for r in rows)/len(rows),"transport_exact_pct":100*sum(r["transport_exact"] for r in rows)/len(rows),"mean_selected_token_reduction_pct":sum(r["selected_token_reduction_pct"] for r in accepted)/len(accepted) if accepted else None}
     out={"simulation":35,"benchmark_version":VERSION,"seeds":SEEDS,"sizes":SIZES,"targets_per_state":TARGETS_PER_STATE,"outcomes":OUTCOMES,"thresholds":THRESHOLDS,"tokenizer":ENCODING,"variants":list(VARIANTS),"cases":cases,"summary":summary,"result_data_sha256":hashlib.sha256(json.dumps(cases,sort_keys=True).encode()).hexdigest(),"scope":"Synthetic confidence/coverage policy benchmark. Resolver confidence and outcomes are injected upstream; thresholding, structural closure, deterministic reconstruction, transport, and exact answer checks are measured. Confidence is not semantic resolver accuracy. No natural-language understanding, learned retrieval, LLM equivalence, latency, universal generalization, consciousness, or optimality claim."}
     Path(args.output).write_text(json.dumps(out,indent=2,sort_keys=True),encoding="utf-8"); print(json.dumps(summary,indent=2,sort_keys=True))
 if __name__=="__main__": main()
