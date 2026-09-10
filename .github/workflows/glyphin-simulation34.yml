@@ -43,28 +43,30 @@ jobs:
           import json
           d=json.load(open('glyphin_simulation34_result.json'))
           assert d['simulation']==34
-          assert d['benchmark_version']=='34.0'
-          assert len(d['cases'])==14400
+          assert d['benchmark_version']=='34.3'
+          assert len(d['cases'])==11520
           assert set(d['variants']) == {'sim17-compact','structural-lineage','state-columnar'}
           assert set(d['outcomes']) == {'exact','miss','wrong_unique','ambiguous'}
           for v in d['variants']:
               for o in d['outcomes']:
                   r=d['summary'][v][o]
-                  assert r['cases']==1200
+                  assert r['cases']==960
                   assert r['transport_exact']==r['accepted']
           for v in d['variants']:
-              assert d['summary'][v]['exact']['resolver_anchor_exact']==1200
-              assert d['summary'][v]['exact']['closure_exact']==1200
-              assert d['summary'][v]['exact']['answer_exact']==1200
-              assert d['summary'][v]['exact']['transport_answer_exact']==1200
+              assert d['summary'][v]['exact']['resolver_anchor_exact']==960
+              assert d['summary'][v]['exact']['closure_exact']==960
+              assert d['summary'][v]['exact']['answer_exact']==960
+              assert d['summary'][v]['exact']['transport_answer_exact']==960
               assert d['summary'][v]['miss']['accepted']==0
               assert d['summary'][v]['miss']['answer_exact']==0
-              assert d['summary'][v]['wrong_unique']['accepted']==1200
+              assert d['summary'][v]['miss']['transport_exact']==0
+              assert d['summary'][v]['wrong_unique']['accepted']==960
               assert d['summary'][v]['wrong_unique']['resolver_anchor_exact']==0
               assert d['summary'][v]['wrong_unique']['closure_exact']==0
               assert d['summary'][v]['wrong_unique']['answer_exact']==0
               assert d['summary'][v]['ambiguous']['accepted']==0
               assert d['summary'][v]['ambiguous']['answer_exact']==0
+              assert d['summary'][v]['ambiguous']['transport_exact']==0
           print(json.dumps(d['summary'], indent=2, sort_keys=True))
           print('result_data_sha256:', d['result_data_sha256'])
           PY
