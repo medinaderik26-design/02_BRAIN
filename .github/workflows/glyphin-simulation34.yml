@@ -1,0 +1,75 @@
+name: Glyphin Simulation 34 Resolver Error Propagation
+
+on:
+  push:
+    branches: [sim31-ci-verify]
+    paths:
+      - 'glyphin_simulation34.py'
+      - 'glyphin_simulation21.py'
+      - 'glyphin_simulation17.py'
+      - 'glyphin_simulation18.py'
+      - 'glyphin_simulation20.py'
+      - '.github/workflows/glyphin-simulation34.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'glyphin_simulation34.py'
+      - 'glyphin_simulation21.py'
+      - 'glyphin_simulation17.py'
+      - 'glyphin_simulation18.py'
+      - 'glyphin_simulation20.py'
+      - '.github/workflows/glyphin-simulation34.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install 'tiktoken==0.11.0'
+      - name: Run Sim34
+        run: python glyphin_simulation34.py --output glyphin_simulation34_result.json
+      - name: Validate invariants
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('glyphin_simulation34_result.json'))
+          assert d['simulation']==34
+          assert d['benchmark_version']=='34.0'
+          assert len(d['cases'])==14400
+          assert set(d['variants']) == {'sim17-compact','structural-lineage','state-columnar'}
+          assert set(d['outcomes']) == {'exact','miss','wrong_unique','ambiguous'}
+          for v in d['variants']:
+              for o in d['outcomes']:
+                  r=d['summary'][v][o]
+                  assert r['cases']==1200
+                  assert r['transport_exact']==r['accepted']
+          for v in d['variants']:
+              assert d['summary'][v]['exact']['resolver_anchor_exact']==1200
+              assert d['summary'][v]['exact']['closure_exact']==1200
+              assert d['summary'][v]['exact']['answer_exact']==1200
+              assert d['summary'][v]['exact']['transport_answer_exact']==1200
+              assert d['summary'][v]['miss']['accepted']==0
+              assert d['summary'][v]['miss']['answer_exact']==0
+              assert d['summary'][v]['wrong_unique']['accepted']==1200
+              assert d['summary'][v]['wrong_unique']['resolver_anchor_exact']==0
+              assert d['summary'][v]['wrong_unique']['closure_exact']==0
+              assert d['summary'][v]['wrong_unique']['answer_exact']==0
+              assert d['summary'][v]['ambiguous']['accepted']==0
+              assert d['summary'][v]['ambiguous']['answer_exact']==0
+          print(json.dumps(d['summary'], indent=2, sort_keys=True))
+          print('result_data_sha256:', d['result_data_sha256'])
+          PY
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation34-result
+          path: glyphin_simulation34_result.json
