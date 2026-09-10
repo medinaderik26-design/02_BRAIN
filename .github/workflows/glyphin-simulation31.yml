@@ -12,6 +12,17 @@ on:
       - 'glyphin_state_referee.py'
       - 'glyphin_research_core.py'
       - '.github/workflows/glyphin-simulation31.yml'
+  pull_request:
+    paths:
+      - 'glyphin_simulation31.py'
+      - 'simulation31.trigger'
+      - 'glyphin_simulation21.py'
+      - 'glyphin_simulation17.py'
+      - 'glyphin_simulation18.py'
+      - 'glyphin_simulation20.py'
+      - 'glyphin_state_referee.py'
+      - 'glyphin_research_core.py'
+      - '.github/workflows/glyphin-simulation31.yml'
   workflow_dispatch:
 
 jobs:
