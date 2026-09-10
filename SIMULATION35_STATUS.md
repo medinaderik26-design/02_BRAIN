@@ -1,0 +1,1 @@
+Simulation 35 implementation complete. CI validation count corrected to 69,120 total cases and 3,840 per variant/threshold before benchmark acceptance.

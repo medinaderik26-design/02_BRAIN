@@ -1,0 +1,60 @@
+name: Glyphin Simulation 33 Surface Boundary
+
+on:
+  push:
+    branches: [sim31-ci-verify]
+    paths:
+      - 'glyphin_simulation33.py'
+      - 'glyphin_simulation33_runner.py'
+      - 'glyphin_simulation21.py'
+      - '.github/workflows/glyphin-simulation33.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'glyphin_simulation33.py'
+      - 'glyphin_simulation33_runner.py'
+      - 'glyphin_simulation21.py'
+      - '.github/workflows/glyphin-simulation33.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install 'tiktoken==0.11.0'
+      - name: Run Sim33 controlled boundary
+        run: python glyphin_simulation33_runner.py --output glyphin_simulation33_result.json
+      - name: Validate result
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('glyphin_simulation33_result.json'))
+          assert d['simulation']==33
+          assert d['benchmark_version']=='33.2'
+          assert len(d['cases'])==4800
+          expected={'canonical':960,'punctuation':960,'reordered':960,'synonymized':960,'free_paraphrase':960}
+          assert {k:v['cases'] for k,v in d['summary'].items()}==expected
+          for k in ('canonical','punctuation','reordered','synonymized'):
+              assert d['summary'][k]['exact']==960
+              assert d['summary'][k]['exact_rate_pct']==100.0
+              assert d['summary'][k]['external_required_cases']==0
+          assert d['summary']['free_paraphrase']['exact']==0
+          assert d['summary']['free_paraphrase']['exact_rate_pct']==0.0
+          assert d['summary']['free_paraphrase']['external_required_cases']==960
+          print(json.dumps(d['summary'],indent=2,sort_keys=True))
+          print('result_data_sha256:', d['result_data_sha256'])
+          PY
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation33-result
+          path: glyphin_simulation33_result.json

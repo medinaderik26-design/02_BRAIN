@@ -1,0 +1,47 @@
+name: Glyphin Simulation 35 Confidence Coverage
+on:
+  push:
+    branches: [sim31-ci-verify]
+  workflow_dispatch:
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install tiktoken==0.11.0
+      - run: python glyphin_simulation35.py --output glyphin_simulation35_result.json
+      - name: Validate invariants
+        run: |
+          python - <<'PY'
+          import json, hashlib
+          d=json.load(open('glyphin_simulation35_result.json'))
+          assert d['benchmark_version']=='35.2'
+          assert len(d['cases'])==13824, len(d['cases'])
+          assert d['result_data_sha256']==hashlib.sha256(json.dumps(d['cases'],sort_keys=True).encode()).hexdigest()
+          for v,s in d['summary'].items():
+            for t,x in s.items():
+              assert x['cases']==3840, (v,t,x['cases'])
+              assert 0 <= x['coverage_pct'] <= 100
+              assert 0 <= x['correct_acceptance_pct'] <= 100
+              assert 0 <= x['wrong_unique_false_acceptance_pct'] <= 100
+              assert 0 <= x['ambiguous_false_acceptance_pct'] <= 100
+          # Each resolver outcome contributes 960 cases per threshold/variant.
+          # Ambiguous and miss are never accepted because only status==resolved
+          # outcomes are eligible for thresholding.
+          # Correct confidence is 0.99; wrong_unique confidence is 0.90.
+          for v,s in d['summary'].items():
+            assert s['0.0']['coverage_pct']==50.0
+            assert s['0.9']['coverage_pct']==50.0
+            assert s['0.99']['coverage_pct']==25.0
+            assert s['0.99']['correct_acceptance_pct']==100.0
+            assert s['0.99']['wrong_unique_false_acceptance_pct']==0.0
+            assert s['0.99']['ambiguous_false_acceptance_pct']==0.0
+          print('Simulation 35 invariants passed')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation35-result
+          path: glyphin_simulation35_result.json

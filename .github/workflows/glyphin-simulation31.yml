@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'glyphin_simulation31.py'
+      - 'glyphin_simulation31_runner.py'
       - 'simulation31.trigger'
       - 'glyphin_simulation21.py'
       - 'glyphin_simulation17.py'
@@ -11,6 +12,28 @@ on:
       - 'glyphin_simulation20.py'
       - 'glyphin_state_referee.py'
       - 'glyphin_research_core.py'
+      - 'glyphin_simulation33.py'
+      - 'glyphin_simulation33_runner.py'
+      - 'glyphin_simulation35.py'
+      - 'SIMULATION35_TRIGGER.txt'
+      - 'SIMULATION35_CI_TRIGGER_20260910.txt'
+      - '.github/workflows/glyphin-simulation31.yml'
+  pull_request:
+    paths:
+      - 'glyphin_simulation31.py'
+      - 'glyphin_simulation31_runner.py'
+      - 'simulation31.trigger'
+      - 'glyphin_simulation21.py'
+      - 'glyphin_simulation17.py'
+      - 'glyphin_simulation18.py'
+      - 'glyphin_simulation20.py'
+      - 'glyphin_state_referee.py'
+      - 'glyphin_research_core.py'
+      - 'glyphin_simulation33.py'
+      - 'glyphin_simulation33_runner.py'
+      - 'glyphin_simulation35.py'
+      - 'SIMULATION35_TRIGGER.txt'
+      - 'SIMULATION35_CI_TRIGGER_20260910.txt'
       - '.github/workflows/glyphin-simulation31.yml'
   workflow_dispatch:
 
@@ -24,8 +47,94 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install 'tiktoken==0.11.0'
-      - run: python glyphin_simulation31.py --output glyphin_simulation31_result.json
+      - run: python glyphin_simulation31_runner.py --output glyphin_simulation31_result.json
       - uses: actions/upload-artifact@v4
         with:
           name: glyphin-simulation31-result
           path: glyphin_simulation31_result.json
+
+  sim33-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Sim33 dependencies
+        run: pip install 'tiktoken==0.11.0'
+      - name: Run Sim33 controlled boundary
+        run: python glyphin_simulation33_runner.py --output glyphin_simulation33_result.json
+      - name: Validate Sim33 boundary
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('glyphin_simulation33_result.json'))
+          assert d['simulation']==33
+          assert d['benchmark_version']=='33.2'
+          assert len(d['cases'])==4800
+          expected={'canonical':960,'punctuation':960,'reordered':960,'synonymized':960,'free_paraphrase':960}
+          assert {k:v['cases'] for k,v in d['summary'].items()}==expected
+          for k in ('canonical','punctuation','reordered','synonymized'):
+              assert d['summary'][k]['exact']==960
+              assert d['summary'][k]['exact_rate_pct']==100.0
+              assert d['summary'][k]['external_required_cases']==0
+          assert d['summary']['free_paraphrase']['exact']==0
+          assert d['summary']['free_paraphrase']['exact_rate_pct']==0.0
+          assert d['summary']['free_paraphrase']['external_required_cases']==960
+          print(json.dumps(d['summary'],indent=2,sort_keys=True))
+          print('result_data_sha256:', d['result_data_sha256'])
+          PY
+      - name: Upload Sim33 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation33-result
+          path: glyphin_simulation33_result.json
+
+  sim35-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Sim35 dependencies
+        run: pip install 'tiktoken==0.11.0'
+      - name: Run Sim35 confidence coverage
+        run: python glyphin_simulation35.py --output glyphin_simulation35_result.json
+      - name: Validate Sim35 confidence coverage
+        run: |
+          python - <<'PY'
+          import json, hashlib
+          d=json.load(open('glyphin_simulation35_result.json'))
+          assert d['simulation']==35
+          assert d['benchmark_version']=='35.2'
+          assert len(d['cases'])==13824, len(d['cases'])
+          assert d['result_data_sha256']==hashlib.sha256(json.dumps(d['cases'],sort_keys=True).encode()).hexdigest()
+          for v,s in d['summary'].items():
+            for t,x in s.items():
+              assert x['cases']==3840, (v,t,x['cases'])
+              assert 0 <= x['coverage_pct'] <= 100
+              assert 0 <= x['correct_acceptance_pct'] <= 100
+              assert 0 <= x['wrong_unique_false_acceptance_pct'] <= 100
+              assert 0 <= x['ambiguous_false_acceptance_pct'] <= 100
+            for t in ('0.0','0.25','0.5','0.75','0.9'):
+              assert s[t]['coverage_pct']==50.0, (v,t,s[t]['coverage_pct'])
+            assert s['0.99']['coverage_pct']==25.0
+            assert s['0.99']['correct_acceptance_pct']==100.0
+            assert s['0.99']['wrong_unique_false_acceptance_pct']==0.0
+            assert s['0.99']['ambiguous_false_acceptance_pct']==0.0
+            assert s['0.99']['closure_exact_pct']==25.0
+            assert s['0.99']['answer_exact_pct']==25.0
+          print(json.dumps(d['summary'],indent=2,sort_keys=True))
+          print('result_data_sha256:', d['result_data_sha256'])
+          print('Simulation 35 invariants passed')
+          PY
+      - name: Upload Sim35 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation35-result
+          path: glyphin_simulation35_result.json
+
+# Sim33 controlled-boundary and Sim35 confidence-policy verification are intentionally deterministic.
