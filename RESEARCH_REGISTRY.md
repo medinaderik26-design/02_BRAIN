@@ -9,10 +9,14 @@ Canonical research registry for the 02_BRAIN repository.
 ## Project identity
 
 - Project: **Glyphin**
-- Kernel/integration layer: **Wison Kernel**
+- Company: **Weisone Systems**
+- Core kernel: **Weisone Kernel**
+- Kernel/integration layer for Glyphin: **Weisone Kernel**
 - Canonical repository: `medinaderik26-design/02_BRAIN`
 - Research implementation: `glyphin_research_core.py`
 - Legacy implementation: `glyphin.py`
+
+**Naming rule:** The kernel and company name are authoritative project terminology. Use **Weisone Kernel** and **Weisone Systems** in future research records. Do not revert to the previous Wison spelling.
 
 ## Experiment registry
 
@@ -38,12 +42,13 @@ The first four layers have benchmark-scoped evidence in the repository. Actual L
 ## Research rules
 
 1. Preserve the spelling **Glyphin**.
-2. Preserve historical experiments, failures, negative results, and terminology.
-3. Do not convert benchmark-specific results into universal claims.
-4. Token metrics are only claims when an explicit tokenizer was used.
-5. Exact reconstruction must be independently checked.
-6. Deterministic utility tests should be preferred over LLM self-grading where possible.
-7. Wison Kernel integration results must be labeled separately from Glyphin representation results.
+2. Preserve **Weisone Kernel** and **Weisone Systems** exactly.
+3. Preserve historical experiments, failures, negative results, and terminology.
+4. Do not convert benchmark-specific results into universal claims.
+5. Token metrics are only claims when an explicit tokenizer was used.
+6. Exact reconstruction must be independently checked.
+7. Deterministic utility tests should be preferred over LLM self-grading where possible.
+8. Weisone Kernel integration results must be labeled separately from Glyphin representation results.
 
 ## External research layers
 
