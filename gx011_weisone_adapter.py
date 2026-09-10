@@ -10,10 +10,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import re
-from typing import Any, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from glyphin_research_core import GlyphinMemory
 from gx010_runner import MemoryEvidence, Question
+
+
+@dataclass(frozen=True)
+class _KernelRecord:
+    """Structural fallback record for provider-free kernel implementations."""
+
+    record_id: str
+    payload: Any
+    metadata: Dict[str, Any]
 
 
 def _tokens(text: str) -> set[str]:
@@ -33,14 +42,28 @@ class WeisoneGlyphinAdapter:
     ``kernel`` is expected to expose the provider-neutral memory interface from
     the Weisone Kernel repository. The adapter does not import or mutate the
     historical ``weisone_runtime.py`` module.
+
+    ``record_factory`` is injectable so the adapter never depends on a Python
+    import path from the separate kernel repository. The provider-free smoke
+    test supplies the kernel's actual ``MemoryRecord`` class; other compatible
+    implementations may use the structural fallback.
     """
 
     kernel: Any
     top_k: int = 5
+    record_factory: Optional[Callable[[str, Any, Dict[str, Any]], Any]] = None
 
     def __post_init__(self) -> None:
         if self.top_k < 1:
             raise ValueError("top_k must be >= 1")
+        if self.record_factory is None:
+            self.record_factory = (
+                lambda record_id, payload, metadata: _KernelRecord(
+                    record_id=record_id,
+                    payload=payload,
+                    metadata=metadata,
+                )
+            )
         self.reset()
 
     def reset(self) -> None:
@@ -70,15 +93,12 @@ class WeisoneGlyphinAdapter:
 
         # The kernel stores the same experiment item through its explicit
         # interface. Glyphin remains the state representation being measured.
-        from memory_interface import MemoryRecord
-
-        self.kernel_memory.write(
-            MemoryRecord(
-                record_id=state_name,
-                payload=text,
-                metadata={"glyphin_state": state_name},
-            )
+        record = self.record_factory(
+            state_name,
+            text,
+            {"glyphin_state": state_name},
         )
+        self.kernel_memory.write(record)
 
     def _candidate_states(self, question: Question) -> List[str]:
         query_terms = _tokens(question.prompt)
