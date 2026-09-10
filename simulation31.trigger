@@ -1,2 +1,2 @@
 Glyphin Simulation 31 alias/descriptor anchor retrieval benchmark trigger.
-Correction: collision probes are single-ambiguous-anchor rejection tests; batch amortization uses distinct primary rows; combined persistent index cost is reported.
+Sim31.2: resolver now uses the persistent alias index while dependency closure uses the separate structural index.
