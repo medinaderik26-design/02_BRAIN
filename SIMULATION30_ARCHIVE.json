@@ -1,0 +1,31 @@
+{
+  "simulation": 30,
+  "benchmark_version": "30.2",
+  "purpose": "Deterministic query-to-anchor lexical resolution followed by index-discovered dependency retrieval.",
+  "source_commit": "bf27360a3967c0ecd07edbebf537c3630d40c4e2",
+  "source_blob_sha": "6046d20307cc517f64571310d901eaf8330eaccb",
+  "workflow_run": 34419314533,
+  "workflow_job": 102691078613,
+  "workflow_head_sha": "bf27360a3967c0ecd07edbebf537c3630d40c4e2",
+  "artifact_id": 10130303448,
+  "artifact_sha256": "58d5303b3e117db484c562939085527b2ee38dfc33186f9feb0732c3fb3562e5",
+  "result_json_sha256": "3e024e96dfb89cbde585228fc6686f398fa0dcbb8c3a7c8eddadd14d2833cbd9",
+  "independent_hash_check": "Embedded result_data_sha256 matches independently recomputed canonical JSON hash.",
+  "cases": 450,
+  "variants": ["sim17-compact", "structural-lineage", "state-columnar"],
+  "tokenizer": "cl100k_base",
+  "summary": {
+    "sim17-compact": {"state_exact_cases": 150, "anchor_exact_cases": 150, "index_exact_cases": 150, "answer_exact_cases": 150, "utility_exact_rate_pct": 100.0, "mean_retrieved_state_pct": 0.7919921875, "mean_selected_token_reduction_pct": 99.18387070091941},
+    "structural-lineage": {"state_exact_cases": 150, "anchor_exact_cases": 150, "index_exact_cases": 150, "answer_exact_cases": 150, "utility_exact_rate_pct": 100.0, "mean_retrieved_state_pct": 0.7919921875, "mean_selected_token_reduction_pct": 99.1172028079069},
+    "state-columnar": {"state_exact_cases": 150, "anchor_exact_cases": 150, "index_exact_cases": 150, "answer_exact_cases": 150, "utility_exact_rate_pct": 100.0, "mean_retrieved_state_pct": 0.7919921875, "mean_selected_token_reduction_pct": 99.1119615165432}
+  },
+  "mean_index_tokens": 51454.6,
+  "break_even": "The measured persistent index cost is not recovered at batch size 1, but is recovered by batch size 4 in all three variants in this benchmark.",
+  "caveats": [
+    "Anchor resolution is deterministic lexical matching of literal state IDs in the query text; natural-language semantic query understanding is not tested.",
+    "The structural index discovers dependency closure after anchor resolution; closure correctness is validated against an independently computed ground truth.",
+    "Index storage is a persistent one-time cost amortized across repeated queries.",
+    "The selected transport re-encodes induced subsets with the same encoders; this is not a fully chunk-addressable wire protocol.",
+    "No latency, learned retrieval, LLM semantic equivalence, universal generalization, consciousness, or optimality claim is made."
+  ]
+}
