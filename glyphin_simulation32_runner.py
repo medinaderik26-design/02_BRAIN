@@ -1,18 +1,15 @@
 """Corrected Sim32 runner: unique multi-token controlled descriptors.
 
-The original Sim32 benchmark reused a 16-item descriptor vocabulary across
-all states, so exact descriptor matching became ambiguous at size > 16.
-This runner keeps the benchmark deterministic but assigns each state a unique
-three-token descriptor phrase from the same 16x16x16 controlled vocabulary.
-Each phrase still has three controlled paraphrase variants. This is a
-controlled-language resolver, not natural-language understanding.
+The benchmark uses a 16x16x16 controlled vocabulary. Each state gets a unique
+three-token descriptor phrase and three controlled synonym variants. This is
+a deterministic controlled-language resolver, not natural-language
+understanding.
 """
-import sys
 import glyphin_simulation32 as sim
 
 
 def _code_digits(i):
-    base = len(sim.CONCEPTS)
+    base = len(sim.VOCAB)
     return ((i // (base * base)) % base, (i // base) % base, i % base)
 
 
@@ -22,9 +19,9 @@ def descriptor_map(memory):
     for i, n in enumerate(ns):
         a, b, c = _code_digits(i)
         out[n] = {
-            "canonical": tuple(sim.CONCEPTS[j][0] for j in (a, b, c)),
-            "synonyms": tuple(
-                tuple(sim.CONCEPTS[j][style] for j in (a, b, c))
+            "canonical": tuple(sim.VOCAB[j][0] for j in (a, b, c)),
+            "variants": tuple(
+                tuple(sim.VOCAB[j][style] for j in (a, b, c))
                 for style in range(3)
             ),
         }
@@ -34,14 +31,14 @@ def descriptor_map(memory):
 def build_descriptor_index(dmap):
     idx = {}
     for state, info in dmap.items():
-        for phrase in info["synonyms"]:
+        for phrase in info["variants"]:
             key = " ".join(phrase)
             idx.setdefault(key, []).append(state)
     return {k: sorted(v) for k, v in sorted(idx.items())}
 
 
 def choose_descriptor(dmap, state, style):
-    return " ".join(dmap[state]["synonyms"][style])
+    return " ".join(dmap[state]["variants"][style])
 
 
 sim.VERSION = "32.1"
