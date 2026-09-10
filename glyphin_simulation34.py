@@ -1,4 +1,8 @@
-"""Simulation 34 — resolver error propagation boundary."""
+"""Simulation 34 — resolver error propagation boundary.
+
+Separates an upstream concept resolver from Glyphin's structural retrieval,
+induced-state reconstruction, and exact downstream answer.
+"""
 from __future__ import annotations
 import argparse, hashlib, json, random
 from pathlib import Path
@@ -15,7 +19,7 @@ TARGETS_PER_STATE=64
 ENCODING="cl100k_base"
 VARIANTS={"sim17-compact":(encode_compact,decode_compact),"structural-lineage":(encode_structural,decode_structural),"state-columnar":(encode_columnar,decode_columnar)}
 OUTCOMES=("exact","miss","wrong_unique","ambiguous")
-VERSION="34.1"
+VERSION="34.2"
 
 def parent_closure(mem,anchors):
     wanted=set(anchors); stack=list(anchors)
@@ -57,10 +61,11 @@ def run_case(mem,target,outcome,rng,variant,tok):
     enc,dec=VARIANTS[variant]
     full_tokens=len(tok.encode(mem.to_json(),disallowed_special=()))
     if accepted:
-        rebuilt=dec(enc(induced_memory(mem,selected)))
+        induced=induced_memory(mem,selected)
+        rebuilt=dec(enc(induced))
         transport_exact=set(rebuilt.states)==selected
         transport_answer_exact=transport_exact and target in rebuilt.states and target_answer(rebuilt,target)==target_answer(mem,target)
-        selected_tokens=len(tok.encode(enc(induced_memory(mem,selected)),disallowed_special=()))
+        selected_tokens=len(tok.encode(enc(induced),disallowed_special=()))
         reduction=(1-selected_tokens/full_tokens)*100.0
     else:
         transport_exact=True; transport_answer_exact=False; selected_tokens=0; reduction=None
