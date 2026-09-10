@@ -65,7 +65,7 @@ jobs:
           import json
           d=json.load(open('glyphin_simulation33_result.json'))
           assert d['simulation']==33
-          assert d['benchmark_version']=='33.1'
+          assert d['benchmark_version']=='33.2'
           assert len(d['cases'])==4800
           expected={'canonical':960,'punctuation':960,'reordered':960,'synonymized':960,'free_paraphrase':960}
           assert {k:v['cases'] for k,v in d['summary'].items()}==expected
