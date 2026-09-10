@@ -16,6 +16,7 @@ on:
       - 'glyphin_simulation33_runner.py'
       - 'glyphin_simulation35.py'
       - 'SIMULATION35_TRIGGER.txt'
+      - 'SIMULATION35_CI_TRIGGER_20260910.txt'
       - '.github/workflows/glyphin-simulation31.yml'
   pull_request:
     paths:
@@ -32,6 +33,7 @@ on:
       - 'glyphin_simulation33_runner.py'
       - 'glyphin_simulation35.py'
       - 'SIMULATION35_TRIGGER.txt'
+      - 'SIMULATION35_CI_TRIGGER_20260910.txt'
       - '.github/workflows/glyphin-simulation31.yml'
   workflow_dispatch:
 
