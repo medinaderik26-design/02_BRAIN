@@ -1,1 +1,2 @@
 Simulation 35 confidence coverage benchmark trigger.
+Validation matrix corrected: 69120 total cases; 3840 per variant/threshold; ambiguous outcomes remain rejected by resolver status.
