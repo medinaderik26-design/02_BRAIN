@@ -1,0 +1,3 @@
+Sim35 validation-corrected execution trigger.
+Expected matrix: 69120 total cases; 3840 per variant/threshold.
+Benchmark version: 35.2.
