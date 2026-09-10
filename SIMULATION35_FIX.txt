@@ -1,0 +1,1 @@
+Corrected matrix count: 5 seeds × 3 sizes × 64 targets × 4 outcomes × 6 thresholds × 3 variants = 69,120 total cases; 3,840 cases per variant/threshold.
