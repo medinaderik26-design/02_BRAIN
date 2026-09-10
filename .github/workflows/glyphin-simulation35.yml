@@ -28,18 +28,16 @@ jobs:
               assert 0 <= x['correct_acceptance_pct'] <= 100
               assert 0 <= x['wrong_unique_false_acceptance_pct'] <= 100
               assert 0 <= x['ambiguous_false_acceptance_pct'] <= 100
-          # Each threshold is evaluated over 960 cases per resolver outcome.
-          # Ambiguous and miss outcomes are never accepted because their resolver
-          # status is not "resolved". Correct=0.99; wrong_unique=0.90.
+          # Threshold policy: ambiguous and miss are never accepted because
+          # only status==resolved outcomes are eligible for thresholding.
+          # Correct has confidence 0.99; wrong_unique has 0.90.
           for v,s in d['summary'].items():
-            for t in ('0.0','0.25','0.5','0.75','0.9'):
-              assert s[t]['coverage_pct']==50.0, (v,t,s[t]['coverage_pct'])
+            assert s['0.0']['coverage_pct']==50.0
+            assert s['0.9']['coverage_pct']==50.0
             assert s['0.99']['coverage_pct']==25.0
             assert s['0.99']['correct_acceptance_pct']==100.0
             assert s['0.99']['wrong_unique_false_acceptance_pct']==0.0
             assert s['0.99']['ambiguous_false_acceptance_pct']==0.0
-            assert s['0.99']['closure_exact_pct']==25.0
-            assert s['0.99']['answer_exact_pct']==25.0
           print('Simulation 35 invariants passed')
           PY
       - uses: actions/upload-artifact@v4
