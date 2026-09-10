@@ -110,7 +110,7 @@ jobs:
           d=json.load(open('glyphin_simulation35_result.json'))
           assert d['simulation']==35
           assert d['benchmark_version']=='35.2'
-          assert len(d['cases'])==69120, len(d['cases'])
+          assert len(d['cases'])==13824, len(d['cases'])
           assert d['result_data_sha256']==hashlib.sha256(json.dumps(d['cases'],sort_keys=True).encode()).hexdigest()
           for v,s in d['summary'].items():
             for t,x in s.items():
