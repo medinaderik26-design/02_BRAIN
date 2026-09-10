@@ -19,7 +19,7 @@ TARGETS_PER_STATE=64
 ENCODING="cl100k_base"
 VARIANTS={"sim17-compact":(encode_compact,decode_compact),"structural-lineage":(encode_structural,decode_structural),"state-columnar":(encode_columnar,decode_columnar)}
 OUTCOMES=("exact","miss","wrong_unique","ambiguous")
-VERSION="34.2"
+VERSION="34.3"
 
 def parent_closure(mem,anchors):
     wanted=set(anchors); stack=list(anchors)
@@ -68,7 +68,7 @@ def run_case(mem,target,outcome,rng,variant,tok):
         selected_tokens=len(tok.encode(enc(induced),disallowed_special=()))
         reduction=(1-selected_tokens/full_tokens)*100.0
     else:
-        transport_exact=True; transport_answer_exact=False; selected_tokens=0; reduction=None
+        transport_exact=False; transport_answer_exact=False; selected_tokens=0; reduction=None
     return {"target":target,"resolver_outcome":outcome,"resolver_status":res["status"],"candidate_count":res["candidate_count"],"resolver_anchor_exact":res["anchors"]==[target],"accepted":accepted,"truth_closure_size":len(truth),"selected_closure_size":len(selected),"closure_exact":closure_exact,"answer_exact":answer_exact,"transport_exact":transport_exact,"transport_answer_exact":transport_answer_exact,"full_tokens":full_tokens,"selected_tokens":selected_tokens,"selected_token_reduction_pct":reduction}
 
 def main():
@@ -87,7 +87,7 @@ def main():
       for o in OUTCOMES:
        rows=[r for r in cases if r["variant"]==v and r["resolver_outcome"]==o]; vals=[r["selected_token_reduction_pct"] for r in rows if r["selected_token_reduction_pct"] is not None]
        summary[v][o]={"cases":len(rows),"resolver_anchor_exact":sum(r["resolver_anchor_exact"] for r in rows),"accepted":sum(r["accepted"] for r in rows),"closure_exact":sum(r["closure_exact"] for r in rows),"answer_exact":sum(r["answer_exact"] for r in rows),"transport_exact":sum(r["transport_exact"] for r in rows),"transport_answer_exact":sum(r["transport_answer_exact"] for r in rows),"mean_selected_closure_size":sum(r["selected_closure_size"] for r in rows)/len(rows),"mean_selected_token_reduction_pct":sum(vals)/len(vals) if vals else None}
-    out={"simulation":34,"benchmark_version":VERSION,"seeds":SEEDS,"sizes":SIZES,"targets_per_state":TARGETS_PER_STATE,"outcomes":OUTCOMES,"tokenizer":ENCODING,"variants":list(VARIANTS),"cases":cases,"summary":summary,"result_data_sha256":hashlib.sha256(json.dumps(cases,sort_keys=True).encode()).hexdigest(),"scope":"Synthetic resolver-error propagation benchmark. Resolver outcomes are injected upstream; Glyphin structural closure, induced reconstruction, deterministic transport, and deterministic answer checks are measured. No semantic resolver quality, natural-language understanding, learned retrieval, LLM equivalence, latency, universal generalization, consciousness, or optimality claim."}
+    out={"simulation":34,"benchmark_version":VERSION,"seeds":SEEDS,"sizes":SIZES,"targets_per_state":TARGETS_PER_STATE,"outcomes":OUTCOMES,"tokenizer":ENCODING,"variants":list(VARIANTS),"cases":cases,"summary":summary,"result_data_sha256":hashlib.sha256(json.dumps(cases,sort_keys=True).encode()).hexdigest(),"scope":"Synthetic resolver-error propagation benchmark. Resolver outcomes are injected upstream; Glyphin structural closure, induced reconstruction, deterministic transport, and deterministic answer checks are measured. Rejected resolver outcomes do not enter transport, so transport_exact is false when the resolver does not produce an accepted anchor. No semantic resolver quality, natural-language understanding, learned retrieval, LLM equivalence, latency, universal generalization, consciousness, or optimality claim."}
     Path(args.output).write_text(json.dumps(out,indent=2,sort_keys=True),encoding="utf-8"); print(json.dumps(summary,indent=2,sort_keys=True))
 
 if __name__=="__main__": main()
