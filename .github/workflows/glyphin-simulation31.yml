@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'glyphin_simulation31.py'
+      - 'glyphin_simulation31_runner.py'
       - 'simulation31.trigger'
       - 'glyphin_simulation21.py'
       - 'glyphin_simulation17.py'
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - 'glyphin_simulation31.py'
+      - 'glyphin_simulation31_runner.py'
       - 'simulation31.trigger'
       - 'glyphin_simulation21.py'
       - 'glyphin_simulation17.py'
@@ -35,7 +37,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install 'tiktoken==0.11.0'
-      - run: python glyphin_simulation31.py --output glyphin_simulation31_result.json
+      - run: python glyphin_simulation31_runner.py --output glyphin_simulation31_result.json
       - uses: actions/upload-artifact@v4
         with:
           name: glyphin-simulation31-result
