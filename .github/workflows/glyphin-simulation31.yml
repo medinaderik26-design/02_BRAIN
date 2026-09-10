@@ -14,6 +14,8 @@ on:
       - 'glyphin_research_core.py'
       - 'glyphin_simulation33.py'
       - 'glyphin_simulation33_runner.py'
+      - 'glyphin_simulation35.py'
+      - 'SIMULATION35_TRIGGER.txt'
       - '.github/workflows/glyphin-simulation31.yml'
   pull_request:
     paths:
@@ -28,6 +30,8 @@ on:
       - 'glyphin_research_core.py'
       - 'glyphin_simulation33.py'
       - 'glyphin_simulation33_runner.py'
+      - 'glyphin_simulation35.py'
+      - 'SIMULATION35_TRIGGER.txt'
       - '.github/workflows/glyphin-simulation31.yml'
   workflow_dispatch:
 
@@ -85,4 +89,50 @@ jobs:
           name: glyphin-simulation33-result
           path: glyphin_simulation33_result.json
 
-# Sim33 controlled-boundary verification is intentionally deterministic.
+  sim35-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Sim35 dependencies
+        run: pip install 'tiktoken==0.11.0'
+      - name: Run Sim35 confidence coverage
+        run: python glyphin_simulation35.py --output glyphin_simulation35_result.json
+      - name: Validate Sim35 confidence coverage
+        run: |
+          python - <<'PY'
+          import json, hashlib
+          d=json.load(open('glyphin_simulation35_result.json'))
+          assert d['simulation']==35
+          assert d['benchmark_version']=='35.2'
+          assert len(d['cases'])==69120, len(d['cases'])
+          assert d['result_data_sha256']==hashlib.sha256(json.dumps(d['cases'],sort_keys=True).encode()).hexdigest()
+          for v,s in d['summary'].items():
+            for t,x in s.items():
+              assert x['cases']==3840, (v,t,x['cases'])
+              assert 0 <= x['coverage_pct'] <= 100
+              assert 0 <= x['correct_acceptance_pct'] <= 100
+              assert 0 <= x['wrong_unique_false_acceptance_pct'] <= 100
+              assert 0 <= x['ambiguous_false_acceptance_pct'] <= 100
+            for t in ('0.0','0.25','0.5','0.75','0.9'):
+              assert s[t]['coverage_pct']==50.0, (v,t,s[t]['coverage_pct'])
+            assert s['0.99']['coverage_pct']==25.0
+            assert s['0.99']['correct_acceptance_pct']==100.0
+            assert s['0.99']['wrong_unique_false_acceptance_pct']==0.0
+            assert s['0.99']['ambiguous_false_acceptance_pct']==0.0
+            assert s['0.99']['closure_exact_pct']==25.0
+            assert s['0.99']['answer_exact_pct']==25.0
+          print(json.dumps(d['summary'],indent=2,sort_keys=True))
+          print('result_data_sha256:', d['result_data_sha256'])
+          print('Simulation 35 invariants passed')
+          PY
+      - name: Upload Sim35 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation35-result
+          path: glyphin_simulation35_result.json
+
+# Sim33 controlled-boundary and Sim35 confidence-policy verification are intentionally deterministic.
