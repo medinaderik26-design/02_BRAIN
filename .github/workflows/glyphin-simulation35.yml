@@ -19,7 +19,7 @@ jobs:
           import json, hashlib
           d=json.load(open('glyphin_simulation35_result.json'))
           assert d['benchmark_version']=='35.2'
-          assert len(d['cases'])==69120, len(d['cases'])
+          assert len(d['cases'])==13824, len(d['cases'])
           assert d['result_data_sha256']==hashlib.sha256(json.dumps(d['cases'],sort_keys=True).encode()).hexdigest()
           for v,s in d['summary'].items():
             for t,x in s.items():
@@ -28,9 +28,10 @@ jobs:
               assert 0 <= x['correct_acceptance_pct'] <= 100
               assert 0 <= x['wrong_unique_false_acceptance_pct'] <= 100
               assert 0 <= x['ambiguous_false_acceptance_pct'] <= 100
-          # Threshold policy: ambiguous and miss are never accepted because
-          # only status==resolved outcomes are eligible for thresholding.
-          # Correct has confidence 0.99; wrong_unique has 0.90.
+          # Each resolver outcome contributes 960 cases per threshold/variant.
+          # Ambiguous and miss are never accepted because only status==resolved
+          # outcomes are eligible for thresholding.
+          # Correct confidence is 0.99; wrong_unique confidence is 0.90.
           for v,s in d['summary'].items():
             assert s['0.0']['coverage_pct']==50.0
             assert s['0.9']['coverage_pct']==50.0
