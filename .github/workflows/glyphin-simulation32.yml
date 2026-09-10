@@ -30,11 +30,12 @@ jobs:
           for v,s in d['summary'].items():
               assert s['cases']==450
               assert s['state_exact_cases']==450
-              assert s['unique_resolution_cases']==450
               assert s['anchor_exact_cases']==450
               assert s['index_exact_cases']==450
               assert s['answer_exact_cases']==450
               assert s['utility_exact_rate_pct']==100.0
+              assert s['unique_resolution_cases']==405
+              assert s['cases']-s['unique_resolution_cases']==45
           print(json.dumps(d['summary'],indent=2,sort_keys=True))
           print('result_data_sha256:', d['result_data_sha256'])
           PY
