@@ -1,0 +1,45 @@
+name: Glyphin Simulation 32
+on:
+  workflow_dispatch:
+  push:
+    branches: [sim31-ci-verify]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install tiktoken
+      - name: Run Sim32
+        run: python glyphin_simulation32.py --output glyphin_simulation32_result.json
+      - name: Validate result
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('glyphin_simulation32_result.json'))
+          assert d['simulation']==32
+          assert d['benchmark_version']=='32.0'
+          assert len(d['cases'])==1350
+          for v,s in d['summary'].items():
+              assert s['cases']==450
+              assert s['state_exact_cases']==450
+              assert s['unique_resolution_cases']==450
+              assert s['anchor_exact_cases']==450
+              assert s['index_exact_cases']==450
+              assert s['answer_exact_cases']==450
+              assert s['utility_exact_rate_pct']==100.0
+          print(json.dumps(d['summary'],indent=2,sort_keys=True))
+          print('result_data_sha256:', d['result_data_sha256'])
+          PY
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation32-result
+          path: glyphin_simulation32_result.json
