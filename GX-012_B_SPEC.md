@@ -38,7 +38,7 @@ The same local model, model file/version, sampling settings, questions, memory e
 
 ## Local model boundary
 
-The existing `gx010_reader.py` provides an OpenAI-compatible HTTP interface and can target a local server by supplying its base URL and model name. The reader remains provider-neutral and can use an injected transport for tests. fileciteturn148file0
+The existing `gx010_reader.py` provides an OpenAI-compatible HTTP interface and can target a local server by supplying its base URL and model name. The reader remains provider-neutral and can use an injected transport for tests.
 
 Examples of compatible local-server classes include Ollama, llama.cpp server, and other OpenAI-compatible runtimes. The experiment must record the exact runtime, model identifier, quantization, context configuration, and commit/version where available.
 
