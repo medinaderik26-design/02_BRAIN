@@ -1,0 +1,58 @@
+name: GX-012-A Dual Cone Variator Controller Simulation
+
+on:
+  push:
+    paths:
+      - 'gx012_controller.py'
+      - 'gx012_simulation.py'
+      - 'test_gx012_simulation.py'
+      - 'GX-012_SPEC.md'
+      - '.github/workflows/gx012-a.yml'
+  pull_request:
+    paths:
+      - 'gx012_controller.py'
+      - 'gx012_simulation.py'
+      - 'test_gx012_simulation.py'
+      - 'GX-012_SPEC.md'
+      - '.github/workflows/gx012-a.yml'
+  workflow_dispatch:
+
+jobs:
+  gx012-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run GX-012-A deterministic tests
+        run: python test_gx012_simulation.py
+      - name: Export GX-012-A controller history
+        run: |
+          python - <<'PY'
+          import json
+          from gx012_controller import DualConeVariator
+          from gx012_simulation import default_profiles
+
+          rows = []
+          for profile in default_profiles():
+              controller = DualConeVariator(mu=0.25)
+              for _ in range(20):
+                  controller.update(profile.signals, profile.input_budget)
+              rows.append({
+                  'task': profile.name,
+                  'input_budget': profile.input_budget,
+                  'history': controller.export_history(),
+              })
+
+          with open('gx012_a_history.json', 'w', encoding='utf-8') as handle:
+              json.dump(rows, handle, indent=2, sort_keys=True)
+          PY
+      - name: Upload GX-012-A artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gx012-a-controller-history
+          path: gx012_a_history.json
