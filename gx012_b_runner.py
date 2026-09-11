@@ -64,10 +64,14 @@ class GX012BAdaptiveReader:
 
     def answer(self, question: Question, evidence: MemoryEvidence, signals: GX012Signals) -> GX012BResult:
         allocation = self.controller.update(signals, self.input_budget)
-        selected_budget = max(1, int(self.input_budget * allocation.lineage_fraction))
+        selected_budget = max(1, int(self.input_budget * allocation.input_aperture))
         selected_context = self.context_selector(evidence.context, selected_budget)
         selected_evidence = MemoryEvidence(
             context=selected_context,
+            memory_store_size=evidence.memory_store_size,
+            retrieval_operations=evidence.retrieval_operations,
+            reconstruction_exact=evidence.reconstruction_exact,
+            state_referee_exact=evidence.state_referee_exact,
             metadata=dict(evidence.metadata),
         )
 
