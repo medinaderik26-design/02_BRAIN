@@ -27,7 +27,7 @@ Before the first comparative run, record:
 
 ## Local endpoint
 
-`gx010_reader.py` uses an OpenAI-compatible `/v1/chat/completions` endpoint and records prompt/completion token counts when the server reports them. The implementation remains provider-neutral. fileciteturn148file0
+`gx010_reader.py` uses an OpenAI-compatible `/v1/chat/completions` endpoint and records prompt/completion token counts when the server reports them. The implementation remains provider-neutral.
 
 Set the server base URL and model identifier in the experiment configuration. Do not place credentials in GitHub, source files, fixtures, or committed logs.
 
