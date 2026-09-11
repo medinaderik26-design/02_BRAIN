@@ -5,15 +5,21 @@ on:
     paths:
       - 'gx012_controller.py'
       - 'gx012_simulation.py'
+      - 'gx012_dynamic_response.py'
       - 'test_gx012_simulation.py'
+      - 'test_gx012_dynamic_response.py'
       - 'GX-012_SPEC.md'
+      - 'GX-012_A_RUNBOOK.md'
       - '.github/workflows/gx012-a.yml'
   pull_request:
     paths:
       - 'gx012_controller.py'
       - 'gx012_simulation.py'
+      - 'gx012_dynamic_response.py'
       - 'test_gx012_simulation.py'
+      - 'test_gx012_dynamic_response.py'
       - 'GX-012_SPEC.md'
+      - 'GX-012_A_RUNBOOK.md'
       - '.github/workflows/gx012-a.yml'
   workflow_dispatch:
 
@@ -29,7 +35,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Run GX-012-A deterministic tests
-        run: python test_gx012_simulation.py
+        run: |
+          python test_gx012_simulation.py
+          python test_gx012_dynamic_response.py
       - name: Export GX-012-A controller history
         run: |
           python - <<'PY'
@@ -51,8 +59,23 @@ jobs:
           with open('gx012_a_history.json', 'w', encoding='utf-8') as handle:
               json.dump(rows, handle, indent=2, sort_keys=True)
           PY
-      - name: Upload GX-012-A artifact
+      - name: Export GX-012-A.1 dynamic response trace
+        run: |
+          python - <<'PY'
+          import json
+          from gx012_dynamic_response import run_dynamic_sequence
+
+          trace = run_dynamic_sequence()
+          with open('gx012_a1_dynamic_response.json', 'w', encoding='utf-8') as handle:
+              json.dump({
+                  'sequence': trace.sequence,
+                  'rows': trace.rows,
+              }, handle, indent=2, sort_keys=True)
+          PY
+      - name: Upload GX-012-A artifacts
         uses: actions/upload-artifact@v4
         with:
           name: gx012-a-controller-history
-          path: gx012_a_history.json
+          path: |
+            gx012_a_history.json
+            gx012_a1_dynamic_response.json
