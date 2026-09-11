@@ -1,0 +1,36 @@
+name: GX-012-B Local LLM Boundary
+
+on:
+  push:
+    paths:
+      - 'gx012_b_runner.py'
+      - 'test_gx012_b_runner.py'
+      - 'gx010_reader.py'
+      - 'gx010_runner.py'
+      - 'gx012_controller.py'
+      - 'GX-012_B_SPEC.md'
+      - '.github/workflows/gx012-b.yml'
+  pull_request:
+    paths:
+      - 'gx012_b_runner.py'
+      - 'test_gx012_b_runner.py'
+      - 'gx010_reader.py'
+      - 'gx010_runner.py'
+      - 'gx012_controller.py'
+      - 'GX-012_B_SPEC.md'
+      - '.github/workflows/gx012-b.yml'
+  workflow_dispatch:
+
+jobs:
+  gx012-b-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run provider-free GX-012-B tests
+        run: python test_gx012_b_runner.py
