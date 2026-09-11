@@ -9,6 +9,9 @@ on:
       - 'gx010_runner.py'
       - 'gx012_controller.py'
       - 'GX-012_B_SPEC.md'
+      - 'GX-012_B_LOCAL_SETUP.md'
+      - 'gx012_dynamic_response.py'
+      - 'test_gx012_dynamic_response.py'
       - '.github/workflows/gx012-b.yml'
   pull_request:
     paths:
@@ -18,6 +21,9 @@ on:
       - 'gx010_runner.py'
       - 'gx012_controller.py'
       - 'GX-012_B_SPEC.md'
+      - 'GX-012_B_LOCAL_SETUP.md'
+      - 'gx012_dynamic_response.py'
+      - 'test_gx012_dynamic_response.py'
       - '.github/workflows/gx012-b.yml'
   workflow_dispatch:
 
@@ -34,3 +40,5 @@ jobs:
           python-version: '3.12'
       - name: Run provider-free GX-012-B tests
         run: python test_gx012_b_runner.py
+      - name: Run GX-012-A.1 dynamic response regression
+        run: python test_gx012_dynamic_response.py
