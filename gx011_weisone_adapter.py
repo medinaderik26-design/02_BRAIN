@@ -91,8 +91,6 @@ class WeisoneGlyphinAdapter:
         self.items.append(item)
         self.state_names.append(state_name)
 
-        # The kernel stores the same experiment item through its explicit
-        # interface. Glyphin remains the state representation being measured.
         record = self.record_factory(
             state_name,
             text,
@@ -112,15 +110,18 @@ class WeisoneGlyphinAdapter:
 
     def query(self, question: Question) -> MemoryEvidence:
         selected = self._candidate_states(question)
-        recalls = [self.memory.recall(name) for name in selected]
 
-        # Query the kernel boundary as part of the D condition. The returned
-        # records are included as provenance, while the answer context remains
-        # the canonical Glyphin reconstruction used by the experiment.
+        # Query the kernel boundary independently. Match records back to their
+        # Glyphin state IDs rather than relying on retrieval-order coincidence.
         kernel_matches = self.kernel_memory.retrieve(question.prompt, limit=self.top_k)
+        kernel_by_id = {record.record_id: record for record in kernel_matches}
+        ordered_ids = [
+            state_name for state_name in selected if state_name in kernel_by_id
+        ]
+        recalls = [self.memory.recall(name) for name in ordered_ids]
         context_records = [
-            {"glyphin": recall, "kernel_record_id": record.record_id}
-            for recall, record in zip(recalls, kernel_matches)
+            {"glyphin": recall, "kernel_record_id": state_name}
+            for recall, state_name in zip(recalls, ordered_ids)
         ]
         context = "\n".join(
             json.dumps(record, sort_keys=True, ensure_ascii=False)
@@ -138,7 +139,7 @@ class WeisoneGlyphinAdapter:
             reconstruction_exact=reconstruction_exact,
             metadata={
                 "input_text": context,
-                "retrieved_state_ids": selected,
+                "retrieved_state_ids": ordered_ids,
                 "kernel_retrieved_record_ids": [record.record_id for record in kernel_matches],
                 "retrieved_items": len(recalls),
                 "kernel_version": getattr(self.kernel, "version", "UNKNOWN"),
