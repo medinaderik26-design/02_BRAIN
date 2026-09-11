@@ -9,36 +9,83 @@ This stage does **not** measure LLM quality, compute savings, energy savings, or
 ## Frozen reference configuration
 
 - Controller: `gx012_controller.py`
-- Simulation: `gx012_simulation.py`
-- Tests: `test_gx012_simulation.py`
+- Static simulation: `gx012_simulation.py`
+- Dynamic response simulation: `gx012_dynamic_response.py`
+- Static tests: `test_gx012_simulation.py`
+- Dynamic tests: `test_gx012_dynamic_response.py`
 - Adaptation rate: `mu = 0.25`
 - Initial input aperture: `0.5`
 - Initial output aperture: `0.5`
 - Output budget: `32..512`
 - Input budget in synthetic profiles: `4096`
-- Default duration: `20` controller updates
+- Static duration: `20` controller updates
+- Dynamic response duration: `25` controller updates
 
 The target-weight policy currently implemented in `DualConeVariator.target()` is an **initial experimental policy**, not a learned or optimized policy. Its weights must be treated as frozen for a baseline run and changed only as a documented ablation or later experiment.
 
 ## Local execution
 
-Run the deterministic test harness:
+Run the static deterministic test harness:
 
 ```bash
 python test_gx012_simulation.py
 ```
 
-Run the profile suite:
+Run the dynamic response tests:
+
+```bash
+python test_gx012_dynamic_response.py
+```
+
+Run the static profile suite:
 
 ```bash
 python gx012_simulation.py
 ```
 
+Run the dynamic response trace:
+
+```bash
+python gx012_dynamic_response.py
+```
+
+## GX-012-A.1 dynamic response
+
+The dynamic stage replaces repeated steady-state signals with a controlled sequence:
+
+```text
+baseline
+   |
+   v
+resource-pressure spike
+   |
+   v
+recovery
+   |
+   v
+uncertainty spike
+   |
+   v
+recovery
+```
+
+The sequence contains five steps in each phase. It records input/output apertures, targets, resource pressure, and uncertainty.
+
+Required checks:
+
+- deterministic repeated traces;
+- aperture and target bounds remain within `[0,1]`;
+- resource pressure lowers input aperture;
+- aperture begins recovering after pressure is removed;
+- uncertainty increases the output target.
+
+These checks establish controller response behavior only; they do not establish downstream LLM performance or resource savings.
+
 ## CI execution
 
-GitHub Actions runs the GX-012-A test harness when the controller, simulation, test, specification, or workflow changes. The workflow also exports the complete controller history for the four default profiles as a build artifact.
+GitHub Actions runs the GX-012-A test harness when the controller, static/dynamic simulations, tests, specification, runbook, or workflow changes. The workflow exports both the steady-state controller history and the GX-012-A.1 dynamic response trace as build artifacts.
 
-The CI artifact is evidence of reproducible controller execution only. It must not be interpreted as evidence of LLM-level resource savings.
+The CI artifacts are evidence of reproducible controller execution only. They must not be interpreted as evidence of LLM-level resource savings.
 
 ## Current synthetic profiles
 
@@ -49,32 +96,17 @@ The CI artifact is evidence of reproducible controller execution only. It must n
 
 The profiles test directional behavior and convergence under controlled signals. They are not a substitute for a representative task distribution.
 
-## Required checks
-
-The baseline GX-012-A run should establish:
-
-- aperture bounds remain within `[0,1]`;
-- output budgets remain within configured bounds;
-- raw and lineage fractions remain valid;
-- resource pressure moves both apertures downward relative to the high-memory-relevance profile;
-- repeated runs are deterministic;
-- the controller moves toward its calculated target rather than remaining at its initial state.
-
-## Next experimental extension
-
-The next useful controller-only experiment is a **dynamic signal-response suite** rather than more repeated steady-state profiles. It should include:
-
-- sudden resource-pressure increase/decrease;
-- sudden relevance increase/decrease;
-- alternating high/low pressure;
-- uncertainty spikes;
-- step-response settling time;
-- overshoot/oscillation measurement;
-- comparison across several `mu` values;
-- controller overhead accounting.
-
-Only after that should GX-012-B connect the controller to a controlled local LLM.
-
 ## Scientific boundary
 
-A successful GX-012-A run demonstrates that the proposed controller can execute reproducibly under synthetic signals. It does not establish that the controller makes better allocation decisions for a real LLM. That question belongs to GX-012-B and later stages.
+A successful GX-012-A.1 run demonstrates that the proposed controller can respond reproducibly to changing synthetic signals. It does not establish that the controller makes better allocation decisions for a real LLM, saves tokens, reduces compute, reduces energy, or lowers cost.
+
+The next stages remain:
+
+```text
+GX-012-A.1  -> dynamic controller behavior
+GX-012-B    -> controlled local LLM
+GX-012-C    -> Glyphin-coupled signals
+GX-012-D    -> direct resource/energy evaluation
+```
+
+Adaptive resource allocation is an active research direction, including constrained test-time compute allocation and budget-conditioned dynamic inference. Those works establish relevant scientific context, not validation of the Dual Cone Variator or Weisone architecture.
