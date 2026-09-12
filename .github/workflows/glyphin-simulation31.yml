@@ -110,7 +110,19 @@ jobs:
           d=json.load(open('glyphin_simulation35_result.json'))
           assert d['simulation']==35
           assert d['benchmark_version']=='35.2'
-          assert len(d['cases'])==13824, len(d['cases'])
+          # Sim35 cases are the Cartesian product of seeds, sizes, targets,
+          # outcomes, thresholds, and encoding variants. The prior validator
+          # counted only seed*size*target*outcome and therefore expected 13,824
+          # instead of the actual 69,120 generated cases.
+          expected_cases=(
+              len(d['seeds'])
+              * len(d['sizes'])
+              * d['targets_per_state']
+              * len(d['outcomes'])
+              * len(d['thresholds'])
+              * len(d['variants'])
+          )
+          assert len(d['cases'])==expected_cases, (len(d['cases']), expected_cases)
           assert d['result_data_sha256']==hashlib.sha256(json.dumps(d['cases'],sort_keys=True).encode()).hexdigest()
           for v,s in d['summary'].items():
             for t,x in s.items():
@@ -127,6 +139,7 @@ jobs:
             assert s['0.99']['ambiguous_false_acceptance_pct']==0.0
             assert s['0.99']['closure_exact_pct']==25.0
             assert s['0.99']['answer_exact_pct']==25.0
+          print('expected_cases:', expected_cases)
           print(json.dumps(d['summary'],indent=2,sort_keys=True))
           print('result_data_sha256:', d['result_data_sha256'])
           print('Simulation 35 invariants passed')
