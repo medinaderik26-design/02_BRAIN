@@ -10,35 +10,56 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - run: pip install tiktoken==0.11.0
       - run: python glyphin_simulation35.py --output glyphin_simulation35_result.json
       - name: Validate invariants
         run: |
           python - <<'PY'
-          import json, hashlib
-          d=json.load(open('glyphin_simulation35_result.json'))
-          assert d['benchmark_version']=='35.2'
-          assert len(d['cases'])==13824, len(d['cases'])
-          assert d['result_data_sha256']==hashlib.sha256(json.dumps(d['cases'],sort_keys=True).encode()).hexdigest()
-          for v,s in d['summary'].items():
-            for t,x in s.items():
-              assert x['cases']==3840, (v,t,x['cases'])
-              assert 0 <= x['coverage_pct'] <= 100
-              assert 0 <= x['correct_acceptance_pct'] <= 100
-              assert 0 <= x['wrong_unique_false_acceptance_pct'] <= 100
-              assert 0 <= x['ambiguous_false_acceptance_pct'] <= 100
-          # Each resolver outcome contributes 960 cases per threshold/variant.
-          # Ambiguous and miss are never accepted because only status==resolved
-          # outcomes are eligible for thresholding.
-          # Correct confidence is 0.99; wrong_unique confidence is 0.90.
-          for v,s in d['summary'].items():
-            assert s['0.0']['coverage_pct']==50.0
-            assert s['0.9']['coverage_pct']==50.0
-            assert s['0.99']['coverage_pct']==25.0
-            assert s['0.99']['correct_acceptance_pct']==100.0
-            assert s['0.99']['wrong_unique_false_acceptance_pct']==0.0
-            assert s['0.99']['ambiguous_false_acceptance_pct']==0.0
+          import hashlib, json
+          d = json.load(open('glyphin_simulation35_result.json'))
+          assert d['simulation'] == 35
+          assert d['benchmark_version'] == '35.2'
+
+          # Full Sim35 matrix:
+          # 5 seeds × 3 sizes × 64 targets × 4 outcomes × 6 thresholds × 3 variants.
+          expected_cases = (
+              len(d['seeds'])
+              * len(d['sizes'])
+              * d['targets_per_state']
+              * len(d['outcomes'])
+              * len(d['thresholds'])
+              * len(d['variants'])
+          )
+          assert expected_cases == 69120
+          assert len(d['cases']) == expected_cases, (len(d['cases']), expected_cases)
+
+          assert d['result_data_sha256'] == hashlib.sha256(
+              json.dumps(d['cases'], sort_keys=True).encode()
+          ).hexdigest()
+
+          for v, s in d['summary'].items():
+              for t, x in s.items():
+                  assert x['cases'] == 3840, (v, t, x['cases'])
+                  assert 0 <= x['coverage_pct'] <= 100
+                  assert 0 <= x['correct_acceptance_pct'] <= 100
+                  assert 0 <= x['wrong_unique_false_acceptance_pct'] <= 100
+                  assert 0 <= x['ambiguous_false_acceptance_pct'] <= 100
+
+              # Only status==resolved outcomes can be accepted.
+              # correct confidence = 0.99; wrong_unique confidence = 0.90.
+              # ambiguous/miss remain rejected at every threshold.
+              for t in ('0.0', '0.25', '0.5', '0.75', '0.9'):
+                  assert s[t]['coverage_pct'] == 50.0, (v, t, s[t]['coverage_pct'])
+              assert s['0.99']['coverage_pct'] == 25.0
+              assert s['0.99']['correct_acceptance_pct'] == 100.0
+              assert s['0.99']['wrong_unique_false_acceptance_pct'] == 0.0
+              assert s['0.99']['ambiguous_false_acceptance_pct'] == 0.0
+              assert s['0.99']['closure_exact_pct'] == 25.0
+              assert s['0.99']['answer_exact_pct'] == 25.0
+
+          print('expected_cases:', expected_cases)
+          print('result_data_sha256:', d['result_data_sha256'])
           print('Simulation 35 invariants passed')
           PY
       - uses: actions/upload-artifact@v4
