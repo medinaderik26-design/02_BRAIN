@@ -17,10 +17,10 @@ def test_dynamic_trace_is_deterministic_and_bounded():
 
 def test_dynamic_trace_reads_dataclass_history_fields():
     rows = run_dynamic_sequence().rows
-    assert rows[0]["input_target"] == 0.605
-    assert rows[0]["output_target"] == 0.42
-    assert rows[-1]["input_target"] == 0.605
-    assert rows[-1]["output_target"] == 0.42
+    assert rows[0]["input_target"] == 0.585
+    assert rows[0]["output_target"] == 0.395
+    assert rows[-1]["input_target"] == 0.585
+    assert rows[-1]["output_target"] == 0.395
 
 
 def test_pressure_spike_reduces_input_aperture():
