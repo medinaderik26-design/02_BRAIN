@@ -1,0 +1,54 @@
+name: Glyphin Simulation 35.2 Independent Measurement Gate
+
+on:
+  push:
+    branches:
+      - sim35-2-independent-gate
+    paths:
+      - 'glyphin_simulation35_2.py'
+      - 'glyphin_simulation35.py'
+      - 'glyphin_simulation21.py'
+      - 'glyphin_simulation17.py'
+      - 'glyphin_simulation18.py'
+      - 'glyphin_simulation20.py'
+      - 'glyphin_research_core.py'
+      - '.github/workflows/glyphin-simulation35-2.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'glyphin_simulation35_2.py'
+      - 'glyphin_simulation35.py'
+      - 'glyphin_simulation21.py'
+      - 'glyphin_simulation17.py'
+      - 'glyphin_simulation18.py'
+      - 'glyphin_simulation20.py'
+      - 'glyphin_research_core.py'
+      - '.github/workflows/glyphin-simulation35-2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tokenizer dependency
+        run: pip install 'tiktoken==0.11.0'
+      - name: Run independent measurement gate
+        run: python glyphin_simulation35_2.py --output glyphin_simulation35_2_result.json
+      - name: Verify result artifact exists
+        run: test -s glyphin_simulation35_2_result.json
+      - name: Upload Sim35.2 result
+        uses: actions/upload-artifact@v4
+        with:
+          name: glyphin-simulation35-2-result
+          path: glyphin_simulation35_2_result.json
