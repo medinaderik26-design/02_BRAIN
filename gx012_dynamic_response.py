@@ -57,13 +57,14 @@ def run_dynamic_sequence(frames=None, mu: float = 0.25) -> DynamicTrace:
     for step, frame in enumerate(frames or default_sequence()):
         before = controller.input_aperture
         allocation = controller.update(frame.signals, input_budget=4096)
+        current = controller.history[-1]
         rows.append({
             "step": float(step),
             "input_aperture_before": before,
             "input_aperture": allocation.input_aperture,
             "output_aperture": allocation.output_aperture,
-            "input_target": controller.history[-1]["input_target"],
-            "output_target": controller.history[-1]["output_target"],
+            "input_target": current.target_input,
+            "output_target": current.target_output,
             "resource_pressure": frame.signals.resource_pressure,
             "uncertainty": frame.signals.uncertainty,
         })
