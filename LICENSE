@@ -1,0 +1,116 @@
+GLYPHIN RESEARCH LICENSE
+Version 1.0 — 2026
+
+Copyright © 2026 Derik Medina / Glyphin Research Lab. All rights reserved.
+
+1. PURPOSE
+
+This repository contains proprietary research, software, experimental methods,
+research artifacts, documentation, benchmarks, and related intellectual property
+(the “Work”). This license is intended to preserve the rights of the copyright
+owner while allowing the public to inspect the repository and, where expressly
+permitted below, conduct limited non-commercial research evaluation.
+
+2. NO GENERAL LICENSE
+
+Except for the limited permissions expressly granted in Section 3, no rights,
+title, or interest in the Work are granted. All rights are reserved.
+
+3. LIMITED PERMISSION
+
+You may view the Work and run an unmodified copy solely for personal,
+non-commercial research, education, evaluation, or verification, provided that:
+
+(a) copyright and license notices remain intact;
+(b) you do not remove, obscure, or alter attribution or provenance information;
+(c) you do not represent the Work, its results, or derivatives as your own; and
+(d) any public discussion or publication that materially relies on the Work
+    identifies the Work and its source repository.
+
+This permission does not grant permission to distribute, sublicense, sell,
+host, or commercially exploit the Work.
+
+4. RESTRICTIONS
+
+Without prior written permission from the copyright owner, you may not:
+
+(a) use the Work for commercial purposes;
+(b) sell, license, sublicense, rent, lease, or otherwise monetize the Work;
+(c) redistribute substantial portions of the Work or distribute modified copies;
+(d) create or distribute derivative works based on the Work;
+(e) incorporate the Work into a commercial product, service, dataset, or platform;
+(f) use the Work or substantial portions of it to train, fine-tune, benchmark,
+    or otherwise develop an artificial-intelligence or machine-learning model,
+    dataset, or competing system, except where a separate written permission
+    expressly authorizes that use;
+(g) remove provenance, research-history, attribution, copyright, or license
+    notices;
+(h) imply endorsement, sponsorship, authorship, or affiliation with the
+    copyright owner without written permission; or
+(i) use the Work to misrepresent experimental results or research conclusions.
+
+5. PUBLIC GITHUB REPOSITORY
+
+This license does not attempt to override rights GitHub grants through its own
+Terms of Service or platform functionality. Public GitHub repositories can be
+viewed and forked through GitHub's service. A GitHub fork is not, by itself,
+a grant of additional rights to reuse, distribute, modify, commercialize, or
+otherwise exploit the Work outside the rights expressly granted by this license.
+
+6. RESEARCH RESULTS AND EVIDENCE
+
+Experimental results, benchmarks, artifacts, logs, and research notes are part
+of the Work unless expressly identified otherwise. Their publication does not
+constitute a warranty that any hypothesis, model, mechanism, or scientific
+claim is true or validated.
+
+7. THIRD-PARTY MATERIAL
+
+Third-party software, datasets, libraries, models, trademarks, or other material
+included with or referenced by the Work remain subject to their respective
+licenses and ownership rights. Nothing in this license grants rights to
+third-party material beyond those rights actually held by the copyright owner.
+
+8. TRADEMARKS AND NAMES
+
+This license grants no permission to use the names “Glyphin,” “Glyphin Research
+Lab,” “Weisone Kernel,” associated logos, marks, or branding except as necessary
+to accurately identify the Work or as separately authorized in writing.
+
+9. CONTRIBUTIONS
+
+No contribution is accepted under this license unless the contributor has the
+right to provide it and the copyright owner has expressly accepted the
+contribution. Submission of a contribution does not by itself grant the
+contributor or any third party a right to use the broader Work.
+
+10. TERMINATION
+
+The permissions granted by this license terminate automatically upon material
+violation of its terms. Rights that cannot lawfully be terminated survive to the
+extent required by applicable law.
+
+11. DISCLAIMER
+
+THE WORK IS PROVIDED “AS IS” TO THE MAXIMUM EXTENT PERMITTED BY LAW. THE
+COPYRIGHT OWNER DISCLAIMS WARRANTIES AND MAKES NO REPRESENTATION THAT THE
+WORK IS ERROR-FREE, SECURE, FIT FOR A PARTICULAR PURPOSE, OR SCIENTIFICALLY
+VALIDATED.
+
+12. RESERVATION OF RIGHTS
+
+All rights not expressly granted by this license are reserved by the copyright
+owner, including rights relating to reproduction, distribution, derivative
+works, commercial exploitation, and licensing.
+
+13. WRITTEN PERMISSION
+
+Requests for permissions beyond this license should be made directly to the
+copyright owner. A separate written agreement may grant additional rights.
+
+IMPORTANT NOTICE
+
+This is a custom proprietary research license, not an Open Source Initiative
+approved open-source license. It is intended to preserve rights rather than
+grant broad reuse permissions. This text is not legal advice and should be
+reviewed by a qualified attorney before being relied upon for enforcement.
