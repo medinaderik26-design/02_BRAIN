@@ -47,7 +47,7 @@ def _equal_field(left: Any, right: Any, field: str) -> bool:
 
 
 def independent_fidelity(source: Any, candidate: Any) -> dict[str, Any]:
-    """Compute a field-level agreement score without using referee output."""
+    """Compute field-level agreement without using referee output."""
     source_names = set(source.states)
     candidate_names = set(candidate.states)
     common = source_names & candidate_names
@@ -67,10 +67,11 @@ def independent_fidelity(source: Any, candidate: Any) -> dict[str, Any]:
             else:
                 mismatches.append({"state": name, "field": field})
 
-    for name in sorted(source_names - candidate_names):
-        mismatches.append({"state": name, "field": "missing_state"})
-    for name in sorted(candidate_names - source_names):
-        mismatches.append({"state": name, "field": "extra_state"})
+    missing = sorted(source_names - candidate_names)
+    extra = sorted(candidate_names - source_names)
+    total += (len(missing) + len(extra)) * len(STATE_FIELDS)
+    mismatches.extend({"state": name, "field": "missing_state"} for name in missing)
+    mismatches.extend({"state": name, "field": "extra_state"} for name in extra)
 
     for field in PARAMETER_FIELDS:
         total += 1
@@ -102,7 +103,7 @@ def perturb_candidate(candidate: Any, fraction: float) -> Any:
     count = int(math.ceil(len(names) * fraction)) if fraction else 0
     for name in names[:count]:
         state = out.states[name]
-        state.resonance = 1.0 - state.resonance
+        state.resonance = state.resonance - 0.1 if state.resonance >= 0.1 else state.resonance + 0.1
     return out
 
 
@@ -118,8 +119,8 @@ def pearson(xs: list[float], ys: list[float]) -> float:
 
 def control_series(memory: Any, enc: Any, dec: Any) -> list[dict[str, float]]:
     rows = []
+    baseline = roundtrip(memory, enc, dec)
     for level in PERTURBATION_LEVELS:
-        baseline = roundtrip(memory, enc, dec)
         candidate = perturb_candidate(baseline, level)
         measurement = independent_fidelity(memory, candidate)
         rows.append({"perturbation": level, "fidelity": measurement["score"]})
