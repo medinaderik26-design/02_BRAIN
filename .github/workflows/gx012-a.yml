@@ -2,25 +2,9 @@ name: GX-012-A Dual Cone Variator Controller Simulation
 
 on:
   push:
-    paths:
-      - 'gx012_controller.py'
-      - 'gx012_simulation.py'
-      - 'gx012_dynamic_response.py'
-      - 'test_gx012_simulation.py'
-      - 'test_gx012_dynamic_response.py'
-      - 'GX-012_SPEC.md'
-      - 'GX-012_A_RUNBOOK.md'
-      - '.github/workflows/gx012-a.yml'
+    branches: [main]
   pull_request:
-    paths:
-      - 'gx012_controller.py'
-      - 'gx012_simulation.py'
-      - 'gx012_dynamic_response.py'
-      - 'test_gx012_simulation.py'
-      - 'test_gx012_dynamic_response.py'
-      - 'GX-012_SPEC.md'
-      - 'GX-012_A_RUNBOOK.md'
-      - '.github/workflows/gx012-a.yml'
+    branches: [main]
   workflow_dispatch:
 
 jobs:
