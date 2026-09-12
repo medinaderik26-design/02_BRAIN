@@ -118,8 +118,8 @@ def pearson(xs: list[float], ys: list[float]) -> float:
 
 
 def control_series(memory: Any, enc: Any, dec: Any) -> list[dict[str, float]]:
-    rows = []
     baseline = roundtrip(memory, enc, dec)
+    rows = []
     for level in PERTURBATION_LEVELS:
         candidate = perturb_candidate(baseline, level)
         measurement = independent_fidelity(memory, candidate)
@@ -163,8 +163,9 @@ def run(seed_set: tuple[int, ...]) -> dict[str, Any]:
     for seed in seed_set:
         for size in SIZES:
             for variant, (enc, dec) in VARIANTS.items():
+                measured = evaluate_case(seed, size, variant, enc, dec)
                 for confidence_level in CONFIDENCE_LEVELS:
-                    case = evaluate_case(seed, size, variant, enc, dec)
+                    case = dict(measured)
                     case["confidence_level"] = confidence_level
                     cases.append(case)
 
@@ -175,6 +176,7 @@ def run(seed_set: tuple[int, ...]) -> dict[str, Any]:
         "cases": cases,
         "summary": {
             "case_count": len(cases),
+            "measured_case_count": len(seed_set) * len(SIZES) * len(VARIANTS),
             "baseline_mean_fidelity": statistics.mean(baseline_scores),
             "baseline_min_fidelity": min(baseline_scores),
             "all_baselines_exact": all(score == 1.0 for score in baseline_scores),
