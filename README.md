@@ -2,6 +2,8 @@
 
 This repository contains two distinct generations of Glyphin code.
 
+> **PROPRIETARY WORK — ALL RIGHTS RESERVED.** See [`LICENSE`](./LICENSE) and [`COPYRIGHT.md`](./COPYRIGHT.md) before using, copying, modifying, redistributing, commercializing, or incorporating this work elsewhere.
+
 ## Research source of truth
 
 The executable research implementation is `glyphin_research_core.py` (`GlyphinMemory`). It implements named states, parent/child lineage, recurrence, cohesion, resonance, decay, recall, canonical serialization, and persistence.
@@ -23,3 +25,11 @@ The Variator is **not yet validated** and should not be treated as a demonstrate
 ## Evidence rule
 
 A working implementation demonstrates that an architecture can be executed. It does not by itself validate the hypothesis. Experimental claims require reproducible measurements and independent referee checks.
+
+## License and usage
+
+This is **not an open-source release**. The repository is publicly visible for research transparency and controlled evaluation. The `LICENSE` grants only the limited rights expressly stated there. In particular, commercial exploitation, redistribution, sublicensing, derivative works, removal of provenance, and unauthorized AI/ML training or competing-system use are not permitted.
+
+Public GitHub visibility does not itself grant those additional rights. GitHub's platform terms separately govern viewing and forking of public repositories.
+
+For permission beyond the license, obtain written authorization from the copyright owner.
