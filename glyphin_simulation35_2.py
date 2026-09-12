@@ -159,29 +159,45 @@ def evaluate_case(seed: int, size: int, variant: str, enc: Any, dec: Any) -> dic
 
 
 def run(seed_set: tuple[int, ...]) -> dict[str, Any]:
-    cases = []
+    measured_cases = []
     for seed in seed_set:
         for size in SIZES:
             for variant, (enc, dec) in VARIANTS.items():
-                measured = evaluate_case(seed, size, variant, enc, dec)
-                for confidence_level in CONFIDENCE_LEVELS:
-                    case = dict(measured)
-                    case["confidence_level"] = confidence_level
-                    cases.append(case)
+                measured_cases.append(evaluate_case(seed, size, variant, enc, dec))
 
-    baseline_scores = [c["baseline_fidelity"] for c in cases]
+    cases = []
+    for measured in measured_cases:
+        for confidence_level in CONFIDENCE_LEVELS:
+            case = dict(measured)
+            case["confidence_level"] = confidence_level
+            cases.append(case)
+
+    baseline_scores = [c["baseline_fidelity"] for c in measured_cases]
+    confidence_means = {
+        str(level): statistics.mean(
+            c["baseline_fidelity"] for c in cases if c["confidence_level"] == level
+        )
+        for level in CONFIDENCE_LEVELS
+    }
+    confidence_values = [confidence_means[str(level)] for level in CONFIDENCE_LEVELS]
+    confidence_effect = max(confidence_values) - min(confidence_values)
+    confidence_trend = pearson(list(CONFIDENCE_LEVELS), confidence_values)
+
     return {
         "version": VERSION,
         "seeds": list(seed_set),
         "cases": cases,
         "summary": {
             "case_count": len(cases),
-            "measured_case_count": len(seed_set) * len(SIZES) * len(VARIANTS),
+            "measured_case_count": len(measured_cases),
             "baseline_mean_fidelity": statistics.mean(baseline_scores),
             "baseline_min_fidelity": min(baseline_scores),
             "all_baselines_exact": all(score == 1.0 for score in baseline_scores),
-            "all_sensitivity_controls_pass": all(c["sensitivity"] for c in cases),
-            "all_shuffle_controls_pass": all(c["shuffle_collapse"] for c in cases),
+            "all_sensitivity_controls_pass": all(c["sensitivity"] for c in measured_cases),
+            "all_shuffle_controls_pass": all(c["shuffle_collapse"] for c in measured_cases),
+            "confidence_stratified_mean_fidelity": confidence_means,
+            "confidence_effect_range": confidence_effect,
+            "confidence_trend": confidence_trend,
         },
     }
 
