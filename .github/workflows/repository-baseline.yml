@@ -1,0 +1,79 @@
+name: Repository Baseline Gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify repository hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -type d -name '__pycache__' -not -path './.git/*' | grep -q .; then
+            echo 'ERROR: committed/generated __pycache__ directory detected in checkout.'
+            exit 1
+          fi
+
+          if find . -type f \( -name '*.pyc' -o -name '*.pyo' \) -not -path './.git/*' | grep -q .; then
+            echo 'ERROR: Python bytecode artifact detected in checkout.'
+            exit 1
+          fi
+
+      - name: Compile Python sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find . -type f -name '*.py' -not -path './.git/*' -not -path './.venv/*' | sort)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo 'ERROR: no Python sources found.'
+            exit 1
+          fi
+          python -m py_compile "${files[@]}"
+
+      - name: Verify core repository documents
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in README.md .gitignore LICENSE; do
+            test -f "$file" || { echo "ERROR: required repository file missing: $file"; exit 1; }
+          done
+
+      - name: Smoke-test Ollama bridge dependency boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path('ollama_bridge.py')
+          if not path.is_file():
+              print('ollama_bridge.py not present; smoke test not applicable.')
+              raise SystemExit(0)
+
+          tree = ast.parse(path.read_text(encoding='utf-8'))
+          imports = {node.names[0].name for node in ast.walk(tree) if isinstance(node, ast.Import)}
+          imports.update(node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module)
+          assert 'ollama' in imports, 'ollama import boundary not detected'
+          print('Detected Ollama dependency boundary without starting an Ollama server.')
+          PY
